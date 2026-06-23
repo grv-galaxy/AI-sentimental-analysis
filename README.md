@@ -410,7 +410,7 @@ airzipm/sentiment-dataset             ← processed data + EDA plots
 **airzipm**
 
 [![Hugging Face](https://img.shields.io/badge/🤗%20Hugging%20Face-airzipm-FFD21E?style=for-the-badge)](https://huggingface.co/airzipm)
-[![GitHub](https://img.shields.io/badge/GitHub-airzipm-181717?style=for-the-badge&logo=github)](https://github.com/airzipm)
+[![GitHub](https://img.shields.io/badge/GitHub-airzipm-181717?style=for-the-badge&logo=github)](https://github.com/grv-galaxy)
 
 </div>
 
