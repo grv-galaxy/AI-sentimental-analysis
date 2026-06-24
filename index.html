@@ -1009,7 +1009,8 @@ Can't recommend this highly enough."
 
 <script>
 // ── CONFIG ───────────────────────────────────────────
-const API_URL         = "https://api-inference.huggingface.co/models/airzipm/sentiment-analysis-roberta";
+const API_BASE = "https://airzipm-sentimentai-api.hf.space";
+const API_URL = `${API_BASE}/analyze`;
 const MAX_RETRIES     = 10;
 const RETRY_INTERVAL  = 20000;
 const WARMUP_TIMEOUT  = 8000;
