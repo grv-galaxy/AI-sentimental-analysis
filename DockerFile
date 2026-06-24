@@ -1,0 +1,48 @@
+# ── SentimentAI — Production Dockerfile ──────────────────────────────────────
+# Hugging Face Spaces (sdk: docker) — Python 3.11 slim image
+# Runs FastAPI via Gunicorn + 4 UvicornWorkers for high concurrency
+
+FROM python:3.11-slim
+
+# Metadata
+LABEL maintainer="airzipm"
+LABEL description="SentimentAI — RoBERTa 3-class sentiment analysis API"
+
+# System dependencies needed by PyTorch and HuggingFace tokenizers
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Working directory — all app files live here on HF Spaces
+WORKDIR /app
+
+# Install Python dependencies first (Docker layer caching: only re-runs if requirements change)
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy application files
+COPY app.py .
+#COPY index.html .
+
+# HF Spaces runs as a non-root user; create one for security
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
+
+# HF Spaces always exposes port 7860
+EXPOSE 7860
+
+# Environment variables
+ENV HOST=0.0.0.0
+ENV PORT=7860
+ENV PYTHONUNBUFFERED=1      
+# PYTHONUNBUFFERED=1 ensures logs are flushed immediately (no buffering)
+
+# Production command:
+# - 4 workers × async = ~100+ concurrent connections on CPU
+# - UvicornWorker = async ASGI workers (not sync wsgi)
+# - timeout=120 allows slow model cold-starts
+# - keepalive=5 reuses connections from load balancer
+# Use this if Gunicorn continues to give you trouble
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860", "--workers", "4", "--timeout-keep-alive", "5"]
