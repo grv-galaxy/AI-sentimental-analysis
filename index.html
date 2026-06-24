@@ -1,0 +1,1940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SentimentAI — Emotion Analysis Powered by RoBERTa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* ── RESET & BASE ─────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    /* ── CSS VARIABLES — Dark Mode ─────────────────── */
+    :root {
+      --bg-primary:      #0a0a0f;
+      --bg-secondary:    #12121a;
+      --bg-tertiary:     #1a1a28;
+      --border:          #2a2a3d;
+      --border-glow:     #6c63ff33;
+      --text-primary:    #f0f0ff;
+      --text-secondary:  #8888aa;
+      --text-muted:      #55556a;
+      --accent-purple:   #6c63ff;
+      --accent-blue:     #3b82f6;
+      --positive:        #10b981;
+      --positive-glow:   #10b98133;
+      --neutral:         #f59e0b;
+      --neutral-glow:    #f59e0b33;
+      --negative:        #ef4444;
+      --negative-glow:   #ef444433;
+      --gradient-hero:   linear-gradient(135deg, #6c63ff22, #3b82f622, #0a0a0f);
+      --nav-bg:          rgba(10,10,15,0.75);
+      --shadow-card:     0 32px 64px rgba(0,0,0,0.4), 0 0 80px rgba(108,99,255,0.04);
+    }
+
+    /* ── LIGHT MODE OVERRIDES ──────────────────────── */
+    body.light-mode {
+      --bg-primary:    #f8f8ff;
+      --bg-secondary:  #ffffff;
+      --bg-tertiary:   #f0f0f8;
+      --border:        #e0e0f0;
+      --text-primary:  #0a0a1a;
+      --text-secondary:#555570;
+      --text-muted:    #9999bb;
+      --nav-bg:        rgba(248,248,255,0.8);
+      --shadow-card:   0 32px 64px rgba(108,99,255,0.08), 0 0 80px rgba(108,99,255,0.04);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      transition: background 0.3s, color 0.3s;
+      overflow-x: hidden;
+    }
+
+    /* ── KEYFRAME ANIMATIONS ───────────────────────── */
+    @keyframes fadeUp {
+      from { opacity:0; transform: translateY(24px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity:0; } to { opacity:1; }
+    }
+    @keyframes scaleIn {
+      from { opacity:0; transform: scale(0.95); }
+      to   { opacity:1; transform: scale(1); }
+    }
+    @keyframes bounceIn {
+      0%   { transform: scale(0); opacity:0; }
+      60%  { transform: scale(1.08); opacity:1; }
+      100% { transform: scale(1); }
+    }
+    @keyframes shimmer {
+      0%   { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity:1; transform: scale(1); }
+      50%       { opacity:0.6; transform: scale(0.85); }
+    }
+    @keyframes blobFloat {
+      0%   { transform: translate(0,0) scale(1); }
+      33%  { transform: translate(20px,-15px) scale(1.05); }
+      66%  { transform: translate(-10px,10px) scale(0.97); }
+      100% { transform: translate(0,0) scale(1); }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes slideInRight {
+      from { opacity:0; transform: translateX(40px); }
+      to   { opacity:1; transform: translateX(0); }
+    }
+    @keyframes gradientShift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(8px); }
+    }
+    @keyframes shake {
+      0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}
+    }
+
+    /* Animation classes */
+    .animate-fade-up     { animation: fadeUp    0.5s ease both; }
+    .animate-scale-in    { animation: scaleIn   0.4s ease both; }
+    .animate-bounce-in   { animation: bounceIn  0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+    .animate-slide-right { animation: slideInRight 0.4s ease both; }
+    .animate-fade-in     { animation: fadeIn 0.4s ease both; }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+    .delay-4 { animation-delay: 0.4s; }
+    .delay-5 { animation-delay: 0.5s; }
+    .delay-6 { animation-delay: 0.6s; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+
+    /* ── NAVBAR ────────────────────────────────────── */
+    #navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: var(--nav-bg);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 40px rgba(108,99,255,0.08);
+      transition: background 0.3s;
+    }
+    #navbar.scrolled { background: rgba(10,10,15,0.95); }
+    body.light-mode #navbar.scrolled { background: rgba(248,248,255,0.97); }
+
+    .nav-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 64px;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700; font-size: 1.15rem;
+      color: var(--text-primary); text-decoration: none;
+      border-left: 3px solid var(--accent-purple);
+      padding-left: 12px;
+    }
+    .nav-logo .brain { font-size: 1.4rem; }
+    .nav-badge {
+      font-size: 11px; font-weight: 500; font-family: 'Inter', sans-serif;
+      background: rgba(108,99,255,0.15); color: var(--accent-purple);
+      border: 1px solid rgba(108,99,255,0.3);
+      border-radius: 999px; padding: 2px 8px;
+    }
+    .nav-right {
+      display: flex; align-items: center; gap: 16px;
+    }
+    .nav-status {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 13px; color: var(--text-secondary);
+    }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .status-dot.online  { background: var(--positive); }
+    .status-dot.warming { background: var(--neutral); }
+    .status-dot.error   { background: var(--negative); }
+    .status-dot.checking { background: var(--text-muted); }
+
+    .btn-icon {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text-secondary); cursor: pointer;
+      width: 36px; height: 36px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; transition: all 0.2s;
+    }
+    .btn-icon:hover { border-color: var(--accent-purple); color: var(--accent-purple); }
+    .btn-icon:focus-visible { outline: 2px solid var(--accent-purple); outline-offset: 2px; }
+
+    .nav-hamburger { display: none; }
+    @media (max-width: 640px) {
+      .nav-hamburger { display: flex; }
+      .nav-links-group { display: none; }
+      .nav-links-group.open { display: flex; flex-direction: column; position: absolute; top:64px; right:0; left:0; background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 16px; gap: 12px; }
+    }
+    .nav-links-group { display: flex; align-items: center; gap: 12px; }
+
+    /* ── HERO SECTION ──────────────────────────────── */
+    #hero {
+      position: relative; overflow: hidden;
+      padding: 160px 24px 80px;
+      background: var(--gradient-hero);
+      text-align: center;
+    }
+    .blob {
+      position: absolute; border-radius: 50%;
+      filter: blur(80px); pointer-events: none;
+      animation: blobFloat 12s ease-in-out infinite alternate;
+    }
+    .blob-1 {
+      width: 400px; height: 400px;
+      background: rgba(108,99,255,0.25);
+      top: -100px; left: -100px;
+      animation-delay: 0s;
+    }
+    .blob-2 {
+      width: 350px; height: 350px;
+      background: rgba(59,130,246,0.2);
+      bottom: -80px; right: -60px;
+      animation-delay: -4s;
+    }
+    .hero-content { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; }
+    .hero-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(108,99,255,0.12);
+      border: 1px solid rgba(108,99,255,0.35);
+      border-radius: 999px; padding: 6px 16px;
+      font-size: 13px; color: var(--accent-purple); font-weight: 500;
+      margin-bottom: 24px;
+      box-shadow: 0 0 20px rgba(108,99,255,0.15);
+    }
+    .hero-h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 3.5rem; font-weight: 700; line-height: 1.1;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, var(--text-primary) 60%, var(--accent-purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-sub {
+      color: var(--text-secondary); font-size: 1.05rem;
+      max-width: 580px; margin: 0 auto 32px;
+    }
+    .hero-stats {
+      display: flex; justify-content: center; flex-wrap: wrap; gap: 10px;
+      margin-bottom: 40px;
+    }
+    .hero-stat-pill {
+      display: flex; align-items: center; gap: 7px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 999px; padding: 7px 16px;
+      font-size: 13px; color: var(--text-secondary);
+    }
+    .hero-stat-pill i { color: var(--accent-purple); }
+    .scroll-arrow { color: var(--text-muted); font-size: 24px; animation: bounce 2s ease-in-out infinite; }
+
+    @media (max-width: 768px) { .hero-h1 { font-size: 2rem; } #hero { padding: 120px 16px 60px; } }
+    @media (max-width: 480px) { .hero-h1 { font-size: 1.75rem; } }
+
+    /* ── MODEL STATUS BAR ──────────────────────────── */
+    #status-bar {
+      transition: all 0.4s ease;
+      border-left: 3px solid transparent;
+      overflow: hidden;
+    }
+    .status-bar-inner {
+      max-width: 1200px; margin: 0 auto;
+      padding: 14px 24px;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .status-spinner {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent-purple);
+      animation: spin 0.8s linear infinite; flex-shrink: 0;
+    }
+    .status-text { font-size: 14px; font-weight: 500; flex: 1; }
+    .status-progress-wrap { width: 100%; height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow:hidden; }
+    .status-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, transparent, var(--neutral), transparent);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      width: 100%;
+    }
+    .status-retry-info { font-size: 12px; color: var(--text-secondary); }
+    .btn-sm {
+      padding: 6px 14px; border-radius: 8px; font-size: 13px;
+      font-weight: 500; cursor: pointer; border: 1px solid var(--border);
+      background: rgba(255,255,255,0.08); color: var(--text-primary);
+      transition: all 0.2s;
+    }
+    .btn-sm:hover { background: rgba(255,255,255,0.15); }
+    .response-badge {
+      font-size: 12px; padding: 3px 10px;
+      background: rgba(16,185,129,0.15); color: var(--positive);
+      border: 1px solid rgba(16,185,129,0.3); border-radius: 999px;
+    }
+
+    /* ── MAIN SECTION WRAPPER ──────────────────────── */
+    .main-wrapper { max-width: 900px; margin: 0 auto; padding: 0 16px; }
+    section { padding: 48px 0; }
+
+    /* ── ANALYZER CARD ─────────────────────────────── */
+    #analyzer-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow-card);
+      padding: 40px;
+      margin-bottom: 40px;
+    }
+    @media (max-width: 768px) { #analyzer-card { padding: 20px; border-radius: 16px; } }
+    @media (max-width: 480px) { #analyzer-card { margin: 0 8px; padding: 14px; } }
+
+    /* Input area */
+    .input-label {
+      display: flex; align-items: center; gap: 8px;
+      font-weight: 600; font-size: 14px; margin-bottom: 10px; color: var(--text-primary);
+    }
+    .tooltip-wrap { position: relative; }
+    .tooltip-wrap .tip {
+      position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%);
+      background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 12px; font-size: 12px;
+      color: var(--text-secondary); white-space: nowrap;
+      pointer-events: none; opacity: 0; transition: opacity 0.2s;
+      z-index: 10;
+    }
+    .tooltip-wrap:hover .tip { opacity: 1; }
+
+    #text-input {
+      width: 100%; min-height: 140px; max-height: 300px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border); border-radius: 14px;
+      color: var(--text-primary); font-family: 'Inter', sans-serif;
+      font-size: 15px; line-height: 1.6; padding: 16px;
+      resize: none; transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    #text-input::placeholder { color: var(--text-muted); }
+    #text-input:focus {
+      border-color: var(--accent-purple);
+      box-shadow: 0 0 0 3px rgba(108,99,255,0.2);
+    }
+
+    .input-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 8px;
+    }
+    #char-counter { font-size: 13px; color: var(--text-muted); transition: color 0.2s; }
+    #char-counter.warn { color: var(--neutral); }
+    #char-counter.danger { color: var(--negative); animation: shake 0.3s; }
+    .btn-clear {
+      background: none; border: none; color: var(--text-muted);
+      cursor: pointer; font-size: 14px; padding: 4px 10px;
+      border-radius: 6px; transition: all 0.2s;
+    }
+    .btn-clear:hover { color: var(--negative); background: rgba(239,68,68,0.1); }
+    .auto-analyze-indicator {
+      font-size: 12px; color: var(--accent-purple);
+      display: none; align-items: center; gap: 6px; margin-top: 6px;
+    }
+    .auto-analyze-indicator.show { display: flex; }
+
+    /* Chips */
+    .chips-label { font-size: 12px; color: var(--text-muted); margin: 20px 0 10px; }
+    .chips-row {
+      display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px;
+      scroll-snap-type: x mandatory; scrollbar-width: none;
+      margin-bottom: 10px;
+    }
+    .chips-row::-webkit-scrollbar { display: none; }
+    .chip {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: 999px; padding: 6px 14px;
+      font-size: 13px; color: var(--text-secondary);
+      cursor: pointer; white-space: nowrap; flex-shrink: 0;
+      scroll-snap-align: start;
+      transition: all 0.2s;
+    }
+    .chip:hover {
+      border-color: var(--accent-purple);
+      background: rgba(108,99,255,0.1);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+    .chip:focus-visible { outline: 2px solid var(--accent-purple); outline-offset: 2px; }
+    .chip-dot {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    }
+    .chip-dot.pos { background: var(--positive); }
+    .chip-dot.neu { background: var(--neutral); }
+    .chip-dot.neg { background: var(--negative); }
+    .chip-dot.edge { background: var(--accent-purple); }
+
+    /* Analyze button */
+    #analyze-btn {
+      width: 100%; height: 52px; margin-top: 20px;
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+      border: none; border-radius: 14px; color: #fff;
+      font-size: 16px; font-weight: 600; font-family: 'Inter', sans-serif;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    #analyze-btn:hover:not(:disabled) {
+      filter: brightness(1.15);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(108,99,255,0.4);
+    }
+    #analyze-btn:active:not(:disabled) { transform: translateY(0) scale(0.99); }
+    #analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    #analyze-btn:focus-visible { outline: 2px solid var(--accent-purple); outline-offset: 2px; }
+    .btn-spinner {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 32px 0;
+    }
+
+    /* ── LOADING SKELETON ──────────────────────────── */
+    #loading-state { display: none; }
+    .skeleton-block {
+      height: 60px; border-radius: 12px; margin-bottom: 16px;
+      background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--border) 50%, var(--bg-tertiary) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+    .skeleton-chart { height: 220px; }
+    .skeleton-bars { height: 100px; }
+    .typewriter-msg { text-align: center; font-size: 14px; color: var(--text-muted); margin-top: 20px; }
+
+    /* ── RESULTS PANEL ─────────────────────────────── */
+    #results-panel { display: none; }
+    #results-panel.show { display: block; animation: scaleIn 0.4s ease both; }
+
+    .result-top {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 20px; margin-bottom: 24px;
+    }
+    .sentiment-badge {
+      min-width: 200px; height: 72px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 16px; border: 2px solid;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 22px; font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+    .sentiment-badge.pos {
+      background: var(--positive-glow); border-color: var(--positive);
+      color: var(--positive);
+      box-shadow: 0 0 30px var(--positive-glow);
+    }
+    .sentiment-badge.neu {
+      background: var(--neutral-glow); border-color: var(--neutral);
+      color: var(--neutral);
+      box-shadow: 0 0 30px var(--neutral-glow);
+    }
+    .sentiment-badge.neg {
+      background: var(--negative-glow); border-color: var(--negative);
+      color: var(--negative);
+      box-shadow: 0 0 30px var(--negative-glow);
+    }
+    .confidence-block { text-align: right; }
+    .confidence-num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 48px; font-weight: 800; line-height: 1;
+    }
+    .confidence-label { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+    /* Interpretation */
+    .interpretation {
+      padding: 14px 16px; border-radius: 0 12px 12px 0;
+      border-left: 4px solid;
+      font-size: 14px; line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    /* Charts area */
+    .charts-row {
+      display: flex; gap: 24px; align-items: flex-start;
+      flex-wrap: wrap; margin-bottom: 24px;
+    }
+    .chart-donut-wrap {
+      flex: 0 0 auto; display: flex; flex-direction: column; align-items: center;
+    }
+    .chart-donut-wrap canvas { max-width: 220px; }
+    .chart-bar-wrap { flex: 1; min-width: 200px; }
+    .chart-bar-wrap canvas { width: 100% !important; }
+
+    /* 3-class grid */
+    .class-grid {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 12px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 768px) { .class-grid { grid-template-columns: 1fr; } }
+    .class-card {
+      background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: 16px; padding: 16px; text-align: center;
+      transition: all 0.2s;
+    }
+    .class-card.winner { border-color: transparent; box-shadow: 0 0 0 2px; }
+    .class-card.winner.pos { box-shadow: 0 0 0 2px var(--positive), 0 0 20px var(--positive-glow); }
+    .class-card.winner.neu { box-shadow: 0 0 0 2px var(--neutral), 0 0 20px var(--neutral-glow); }
+    .class-card.winner.neg { box-shadow: 0 0 0 2px var(--negative), 0 0 20px var(--negative-glow); }
+    .class-emoji { font-size: 2rem; display: block; margin-bottom: 8px; }
+    .class-name { font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
+    .class-pct { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; }
+    .class-bar-wrap { height: 4px; background: var(--border); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+    .class-bar { height: 100%; border-radius: 2px; transition: width 0.8s ease; }
+
+    /* Copy/Share row */
+    .result-actions {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    }
+    .btn-action {
+      padding: 8px 16px; border-radius: 8px; font-size: 13px;
+      font-weight: 500; cursor: pointer; border: 1px solid var(--border);
+      background: var(--bg-tertiary); color: var(--text-secondary);
+      transition: all 0.2s; display: flex; align-items: center; gap: 7px;
+    }
+    .btn-action:hover { border-color: var(--accent-purple); color: var(--accent-purple); }
+    .btn-action:focus-visible { outline: 2px solid var(--accent-purple); outline-offset: 2px; }
+    .resp-time-badge {
+      font-size: 12px; padding: 4px 10px; margin-left: auto;
+      background: rgba(108,99,255,0.1); color: var(--accent-purple);
+      border: 1px solid rgba(108,99,255,0.25); border-radius: 999px;
+    }
+
+    /* Error display */
+    #error-display {
+      display: none;
+      padding: 16px; border-radius: 0 12px 12px 0;
+      border-left: 4px solid var(--negative);
+      background: rgba(239,68,68,0.08);
+      margin-top: 20px;
+    }
+    #error-display.show { display: flex; align-items: flex-start; gap: 12px; }
+    .error-icon { color: var(--negative); font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+    .error-title { font-weight: 600; font-size: 14px; color: var(--negative); }
+    .error-msg { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
+    /* ── HISTORY ───────────────────────────────────── */
+    #history-section { display: none; }
+    .section-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.3rem; font-weight: 700;
+    }
+    .btn-text {
+      background: none; border: none; color: var(--text-secondary);
+      font-size: 13px; cursor: pointer; transition: color 0.2s;
+    }
+    .btn-text:hover { color: var(--negative); }
+
+    .history-list { display: flex; flex-direction: column; gap: 10px; }
+    .history-item {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px 16px;
+      transition: all 0.2s; cursor: default;
+    }
+    .history-item:hover { transform: translateY(-2px); border-color: var(--accent-purple); }
+    .hist-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .hist-label { font-size: 12px; font-weight: 600; flex-shrink: 0; }
+    .hist-text { font-size: 13px; color: var(--text-secondary); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hist-time { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+    .hist-score {
+      font-size: 12px; padding: 2px 10px; border-radius: 999px;
+      border: 1px solid; font-weight: 600; flex-shrink: 0;
+    }
+    .btn-reanalyze {
+      background: none; border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text-muted); font-size: 13px; cursor: pointer;
+      padding: 4px 10px; transition: all 0.2s; flex-shrink: 0;
+    }
+    .btn-reanalyze:hover { border-color: var(--accent-purple); color: var(--accent-purple); }
+
+    /* ── BATCH ANALYZER ────────────────────────────── */
+    #batch-section .section-subtitle {
+      color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;
+    }
+    #batch-input {
+      width: 100%; height: 160px;
+      background: var(--bg-tertiary); border: 1px solid var(--border);
+      border-radius: 14px; color: var(--text-primary);
+      font-family: 'Inter', sans-serif; font-size: 14px;
+      padding: 14px; resize: vertical; outline: none;
+      transition: border-color 0.2s;
+    }
+    #batch-input:focus { border-color: var(--accent-purple); }
+    #batch-analyze-btn {
+      margin-top: 14px; padding: 12px 28px;
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+      border: none; border-radius: 12px; color: #fff;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+    }
+    #batch-analyze-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    #batch-progress { margin-top: 14px; display: none; }
+    .batch-progress-bar-wrap { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+    .batch-progress-fill { height: 100%; background: var(--accent-purple); border-radius: 2px; transition: width 0.3s; }
+
+    #batch-results-wrap { display: none; margin-top: 20px; }
+    .batch-table {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+    }
+    .batch-table th {
+      text-align: left; padding: 10px 12px;
+      background: var(--bg-tertiary); color: var(--text-muted);
+      font-weight: 500; font-size: 12px;
+    }
+    .batch-table th:first-child { border-radius: 10px 0 0 10px; }
+    .batch-table th:last-child { border-radius: 0 10px 10px 0; }
+    .batch-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    .batch-table tr:last-child td { border-bottom: none; }
+    .batch-badge {
+      font-size: 11px; padding: 2px 10px; border-radius: 999px;
+      font-weight: 600; border: 1px solid;
+    }
+    .mini-bar-wrap { width: 80px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .mini-bar-fill { height: 100%; border-radius: 3px; }
+
+    .batch-summary {
+      margin-top: 16px; padding: 14px 16px;
+      background: var(--bg-tertiary); border-radius: 12px;
+      display: flex; align-items: center; flex-wrap: wrap; gap: 16px;
+      font-size: 14px;
+    }
+    .batch-summary-text { flex: 1; color: var(--text-secondary); }
+    #export-csv-btn {
+      padding: 8px 16px; border-radius: 8px; font-size: 13px;
+      font-weight: 500; cursor: pointer; border: 1px solid var(--border);
+      background: var(--bg-secondary); color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    #export-csv-btn:hover { border-color: var(--accent-purple); color: var(--accent-purple); }
+    @media (max-width: 768px) { .batch-table .hide-mobile { display: none; } }
+
+    /* ── STATS DASHBOARD ───────────────────────────── */
+    #stats-section { display: none; }
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(4,1fr); gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2,1fr); } }
+    .stat-card {
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      border-radius: 20px; padding: 20px; text-align: center;
+    }
+    .stat-icon { font-size: 1.5rem; margin-bottom: 8px; }
+    .stat-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2rem; font-weight: 700; color: var(--accent-purple);
+    }
+    .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    #timeline-chart-wrap { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 20px; padding: 24px; }
+    .chart-title { font-weight: 600; font-size: 15px; margin-bottom: 16px; color: var(--text-secondary); }
+
+    /* ── INFO SECTION ──────────────────────────────── */
+    .info-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+    @media (max-width: 768px) { .info-cards { grid-template-columns: 1fr; } }
+    .info-card {
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      border-radius: 20px; padding: 24px;
+      transition: all 0.3s ease;
+    }
+    .info-card:hover {
+      border-color: var(--accent-purple);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(108,99,255,0.15);
+    }
+    .info-icon-wrap {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: rgba(108,99,255,0.15); display: flex; align-items: center;
+      justify-content: center; font-size: 1.3rem; margin-bottom: 14px;
+    }
+    .info-card h3 { font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 10px; }
+    .info-card p { font-size: 13.5px; color: var(--text-secondary); line-height: 1.7; }
+
+    /* ── FOOTER ────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 24px; text-align: center;
+      margin-top: 40px;
+    }
+    .footer-brand {
+      font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+      font-size: 1.1rem; margin-bottom: 12px;
+    }
+    .footer-links { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 12px; }
+    .footer-links a { font-size: 13px; color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--accent-purple); }
+    .footer-tech { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+    .footer-cold-start { font-size: 12px; color: var(--text-muted); max-width: 500px; margin: 0 auto; }
+
+    /* Intersection observer reveal */
+    .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.5s ease, transform 0.5s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAVBAR ─────────────────────────────────────── -->
+  <nav id="navbar" role="navigation" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <span class="brain">🧠</span>
+        SentimentAI
+        <span class="nav-badge">by airzipm</span>
+      </a>
+      <div class="nav-right">
+        <div class="nav-status" id="nav-status" role="status" aria-live="polite">
+          <span class="status-dot checking" id="nav-dot"></span>
+          <span id="nav-status-text">Checking...</span>
+        </div>
+        <div class="nav-links-group" id="nav-links">
+          <button class="btn-icon" id="theme-toggle" aria-label="Toggle dark/light mode" title="Toggle theme">
+            <i class="fa-solid fa-moon" id="theme-icon"></i>
+          </button>
+          <a href="#" class="btn-icon" aria-label="GitHub repository" title="GitHub">
+            <i class="fa-brands fa-github"></i>
+          </a>
+          <a href="https://huggingface.co/airzipm" target="_blank" rel="noopener" class="btn-icon" aria-label="HuggingFace model page" title="Hugging Face">
+            🤗
+          </a>
+        </div>
+        <button class="btn-icon nav-hamburger" id="hamburger" aria-label="Toggle menu">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── HERO ──────────────────────────────────────── -->
+  <section id="hero" aria-label="Hero">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="hero-content">
+      <div class="hero-pill animate-fade-up delay-1">
+        <i class="fa-solid fa-bolt"></i> Powered by RoBERTa Base
+      </div>
+      <h1 class="hero-h1 animate-fade-up delay-2">Understand the Emotion Behind Every Word</h1>
+      <p class="hero-sub animate-fade-up delay-3">
+        State-of-the-art 3-class sentiment analysis powered by fine-tuned RoBERTa.
+        Trained on 200,000+ samples across reviews, tweets, and social media.
+      </p>
+      <div class="hero-stats animate-fade-up delay-4">
+        <div class="hero-stat-pill"><i class="fa-solid fa-database"></i> 200K+ Training Samples</div>
+        <div class="hero-stat-pill"><i class="fa-solid fa-tags"></i> 3 Sentiment Classes</div>
+        <div class="hero-stat-pill"><i class="fa-solid fa-brain"></i> RoBERTa Base</div>
+      </div>
+      <div class="scroll-arrow animate-fade-up delay-5">
+        <i class="fa-solid fa-chevron-down"></i>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── MODEL STATUS BAR ───────────────────────────── -->
+  <div id="status-bar" role="status" aria-live="polite" aria-label="Model status">
+    <div class="status-bar-inner" id="status-bar-inner">
+      <div class="status-spinner" id="status-spinner"></div>
+      <span class="status-text" id="status-bar-text">Checking model status...</span>
+    </div>
+  </div>
+
+  <!-- ── MAIN CONTENT ───────────────────────────────── -->
+  <main class="main-wrapper">
+
+    <!-- Analyzer Card -->
+    <section aria-label="Text analyzer">
+      <div id="analyzer-card">
+
+        <!-- Input -->
+        <div class="input-label">
+          <span>Enter text to analyze</span>
+          <div class="tooltip-wrap">
+            <i class="fa-solid fa-circle-info" style="color:var(--text-muted);font-size:13px;cursor:help;" tabindex="0" aria-label="Input help"></i>
+            <div class="tip" role="tooltip">Works best with 10–200 words. Supports English text, tweets, reviews, and comments.</div>
+          </div>
+        </div>
+        <textarea
+          id="text-input"
+          placeholder="Type or paste your text here... e.g. 'This product completely exceeded my expectations!'"
+          maxlength="500"
+          aria-label="Text to analyze"
+          aria-describedby="char-counter"
+        ></textarea>
+        <div class="input-footer">
+          <span id="char-counter" aria-live="polite">0 / 500</span>
+          <button class="btn-clear" id="clear-btn" aria-label="Clear text">✕ Clear</button>
+        </div>
+        <div class="auto-analyze-indicator" id="auto-indicator">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--accent-purple);animation:pulse 1s infinite;"></span>
+          Auto-analyzing...
+        </div>
+
+        <!-- Chips -->
+        <div class="chips-label">✨ Try these examples:</div>
+        <div class="chips-row" id="chips-row-1" aria-label="Positive example chips"></div>
+        <div class="chips-row" id="chips-row-2" aria-label="Neutral and negative example chips"></div>
+        <div class="chips-row" id="chips-row-3" aria-label="Edge case example chips"></div>
+
+        <!-- Analyze button -->
+        <button id="analyze-btn" aria-label="Analyze sentiment of entered text" aria-disabled="true" disabled>
+          <i class="fa-solid fa-sparkles"></i>
+          <span id="analyze-btn-text">Analyze Sentiment</span>
+        </button>
+
+        <!-- Divider -->
+        <div class="divider" id="results-divider" style="display:none;"></div>
+
+        <!-- Loading Skeleton -->
+        <div id="loading-state" aria-label="Analyzing..." aria-live="polite">
+          <div class="skeleton-block"></div>
+          <div class="skeleton-block skeleton-chart"></div>
+          <div class="skeleton-block skeleton-bars"></div>
+          <div class="typewriter-msg" id="typewriter-msg" aria-live="polite"></div>
+        </div>
+
+        <!-- Error -->
+        <div id="error-display" role="alert">
+          <i class="fa-solid fa-triangle-exclamation error-icon"></i>
+          <div>
+            <div class="error-title" id="error-title">Error</div>
+            <div class="error-msg" id="error-msg"></div>
+            <button class="btn-sm" id="error-retry-btn" style="margin-top:10px;">Try Again</button>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results-panel" aria-live="polite" aria-label="Analysis results">
+          <div class="result-top">
+            <div class="sentiment-badge animate-bounce-in" id="result-badge"></div>
+            <div class="confidence-block">
+              <div class="confidence-num" id="result-confidence"></div>
+              <div class="confidence-label">Confidence</div>
+              <div style="font-size:11px;color:var(--text-muted);">Model certainty in prediction</div>
+            </div>
+          </div>
+
+          <div class="interpretation" id="interpretation"></div>
+
+          <div class="charts-row">
+            <div class="chart-donut-wrap">
+              <canvas id="donut-chart" width="220" height="220" aria-label="Donut chart showing sentiment distribution"></canvas>
+            </div>
+            <div class="chart-bar-wrap">
+              <canvas id="bar-chart" aria-label="Horizontal bar chart showing sentiment scores"></canvas>
+            </div>
+          </div>
+
+          <div class="class-grid">
+            <div class="class-card" id="card-pos">
+              <span class="class-emoji">😊</span>
+              <div class="class-name">Positive</div>
+              <div class="class-pct" id="pct-pos" style="color:var(--positive);">0%</div>
+              <div class="class-bar-wrap"><div class="class-bar" id="bar-pos" style="background:var(--positive);width:0%;"></div></div>
+            </div>
+            <div class="class-card" id="card-neu">
+              <span class="class-emoji">😐</span>
+              <div class="class-name">Neutral</div>
+              <div class="class-pct" id="pct-neu" style="color:var(--neutral);">0%</div>
+              <div class="class-bar-wrap"><div class="class-bar" id="bar-neu" style="background:var(--neutral);width:0%;"></div></div>
+            </div>
+            <div class="class-card" id="card-neg">
+              <span class="class-emoji">😞</span>
+              <div class="class-name">Negative</div>
+              <div class="class-pct" id="pct-neg" style="color:var(--negative);">0%</div>
+              <div class="class-bar-wrap"><div class="class-bar" id="bar-neg" style="background:var(--negative);width:0%;"></div></div>
+            </div>
+          </div>
+
+          <div class="result-actions">
+            <button class="btn-action" id="copy-btn"><i class="fa-regular fa-clipboard"></i> Copy Result</button>
+            <button class="btn-action" id="share-btn"><i class="fa-solid fa-link"></i> Share</button>
+            <button class="btn-action" id="analyze-another-btn"><i class="fa-solid fa-rotate"></i> Analyze Another</button>
+            <span class="resp-time-badge" id="resp-time-badge">⚡ --ms</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- History -->
+    <section id="history-section" class="reveal" aria-label="Recent analyses">
+      <div class="section-header">
+        <h2 class="section-title">📜 Recent Analyses</h2>
+        <button class="btn-text" id="clear-history-btn">Clear All</button>
+      </div>
+      <div class="history-list" id="history-list"></div>
+    </section>
+
+    <!-- Batch Analyzer -->
+    <section id="batch-section" class="reveal" aria-label="Batch analyzer">
+      <h2 class="section-title" style="margin-bottom:6px;">📦 Batch Analyzer</h2>
+      <p class="section-subtitle">Analyze multiple texts at once — one per line, up to 10 texts</p>
+      <textarea
+        id="batch-input"
+        placeholder="I loved this product!
+The service was average.
+Absolutely terrible experience.
+Can't recommend this highly enough."
+        aria-label="Batch texts to analyze, one per line"
+      ></textarea>
+      <button id="batch-analyze-btn" aria-label="Analyze all batch texts">
+        <i class="fa-solid fa-layer-group"></i> Analyze All
+      </button>
+      <div id="batch-progress">
+        <div style="font-size:13px;color:var(--text-secondary);" id="batch-progress-text">Analyzing 0 of 0...</div>
+        <div class="batch-progress-bar-wrap"><div class="batch-progress-fill" id="batch-bar" style="width:0%;"></div></div>
+      </div>
+      <div id="batch-results-wrap">
+        <table class="batch-table" aria-label="Batch analysis results">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Text</th>
+              <th>Sentiment</th>
+              <th class="hide-mobile">Confidence</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody id="batch-tbody"></tbody>
+        </table>
+        <div class="batch-summary">
+          <span class="batch-summary-text" id="batch-summary-text"></span>
+          <button id="export-csv-btn"><i class="fa-solid fa-download"></i> Export CSV</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats Dashboard -->
+    <section id="stats-section" class="reveal" aria-label="Session statistics">
+      <h2 class="section-title" style="margin-bottom:20px;">📊 Session Statistics</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📊</div>
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-label">Total Analyses</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⚡</div>
+          <div class="stat-value" id="stat-speed">—</div>
+          <div class="stat-label">Avg Response</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🎯</div>
+          <div class="stat-value" id="stat-common">—</div>
+          <div class="stat-label">Most Common</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📈</div>
+          <div class="stat-value" id="stat-spread">—</div>
+          <div class="stat-label">Sentiment Spread</div>
+        </div>
+      </div>
+      <div id="timeline-chart-wrap">
+        <div class="chart-title">Confidence Over Time (this session)</div>
+        <canvas id="timeline-chart" height="120" aria-label="Line chart of confidence scores over session"></canvas>
+      </div>
+    </section>
+
+    <!-- Info Section -->
+    <section id="info-section" class="reveal" aria-label="About the model">
+      <h2 class="section-title" style="margin-bottom:24px;text-align:center;">About the Model</h2>
+      <div class="info-cards">
+        <div class="info-card">
+          <div class="info-icon-wrap">🧠</div>
+          <h3>Architecture</h3>
+          <p>Built on RoBERTa Base (125M parameters), fine-tuned with a custom 3-class classification head. Trained with AdamW optimizer, linear warmup scheduler, mixed-precision FP16, and label smoothing.</p>
+        </div>
+        <div class="info-card">
+          <div class="info-icon-wrap">📦</div>
+          <h3>Training Data</h3>
+          <p>Fine-tuned on 200,000+ samples from:<br>• IMDB movie reviews<br>• Stanford SST-2 sentences<br>• Twitter Tweet Eval dataset<br>• Yelp restaurant reviews</p>
+        </div>
+        <div class="info-card">
+          <div class="info-icon-wrap">🎯</div>
+          <h3>What It Detects</h3>
+          <p><strong style="color:var(--positive)">Positive:</strong> Satisfaction, enthusiasm, praise<br><strong style="color:var(--neutral)">Neutral:</strong> Facts, balance, mixed signals<br><strong style="color:var(--negative)">Negative:</strong> Frustration, criticism, anger<br>Works on reviews, tweets &amp; comments.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── FOOTER ─────────────────────────────────────── -->
+  <footer>
+    <div class="footer-brand">🧠 SentimentAI by airzipm</div>
+    <div class="footer-links">
+      <a href="#">GitHub</a>
+      <a href="https://huggingface.co/airzipm/sentiment-analysis-roberta" target="_blank" rel="noopener">Hugging Face Model</a>
+      <a href="#">Dataset</a>
+    </div>
+    <div class="footer-tech">Built with RoBERTa · Chart.js · Vanilla JS</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">© 2024 SentimentAI · All rights reserved</div>
+    <div class="footer-cold-start">Model hosted on Hugging Face Inference API. Free tier spaces may have a cold start delay of 20–50s.</div>
+  </footer>
+
+<script>
+// ── CONFIG ───────────────────────────────────────────
+const API_URL         = "https://api-inference.huggingface.co/models/airzipm/sentiment-analysis-roberta";
+const MAX_RETRIES     = 10;
+const RETRY_INTERVAL  = 20000;
+const WARMUP_TIMEOUT  = 8000;
+const MAX_CHARS       = 500;
+
+// ── STATE ────────────────────────────────────────────
+let modelReady         = false;
+let retryCount         = 0;
+let retryTimer         = null;
+let retryCountdown     = null;
+let donutChart         = null;
+let barChart           = null;
+let timelineChart      = null;
+let analysisHistory    = [];
+let batchResults       = [];
+let sessionStats       = { total:0, positive:0, neutral:0, negative:0, totalTime:0 };
+let isAnalyzing        = false;
+let warmupMsgTimer     = null;
+let typewriterInterval = null;
+let currentTheme       = localStorage.getItem("theme") || "dark";
+let lastAnalyzedText   = "";
+let debounceTimer      = null;
+
+// ── DOM REFS ─────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const navbar           = $("navbar");
+const statusBar        = $("status-bar");
+const statusBarInner   = $("status-bar-inner");
+const navDot           = $("nav-dot");
+const navStatusText    = $("nav-status-text");
+const textInput        = $("text-input");
+const charCounter      = $("char-counter");
+const clearBtn         = $("clear-btn");
+const analyzeBtn       = $("analyze-btn");
+const analyzeBtnText   = $("analyze-btn-text");
+const autoIndicator    = $("auto-indicator");
+const resultsDivider   = $("results-divider");
+const loadingState     = $("loading-state");
+const resultsBadge     = $("result-badge");
+const resultsPanel     = $("results-panel");
+const errorDisplay     = $("error-display");
+const historySection   = $("history-section");
+const historyList      = $("history-list");
+const themeToggle      = $("theme-toggle");
+const themeIcon        = $("theme-icon");
+
+// ── CHIP DATA ────────────────────────────────────────
+const CHIPS = [
+  // Positive
+  { text: "This movie completely blew my mind — absolute masterpiece! 🎬", type: "pos" },
+  { text: "Best customer service I've ever experienced, 10/10 would recommend", type: "pos" },
+  { text: "I can't believe how amazing this product is, worth every penny!", type: "pos" },
+  { text: "Outstanding performance, the team exceeded all expectations 🚀", type: "pos" },
+  { text: "Just had the most incredible meal of my life, the chef is a genius", type: "pos" },
+  // Neutral
+  { text: "The product arrived on time. Does what it says on the box.", type: "neu" },
+  { text: "It's okay, not great but not terrible either. Average experience.", type: "neu" },
+  { text: "Mixed feelings — some parts were good, others not so much.", type: "neu" },
+  { text: "The meeting was productive. We covered all agenda items.", type: "neu" },
+  { text: "Decent enough for the price. Nothing to write home about.", type: "neu" },
+  // Negative
+  { text: "Absolute disaster. Worst purchase I have ever made in my life.", type: "neg" },
+  { text: "I can't believe how terrible the service was, never going back", type: "neg" },
+  { text: "This is the most disappointing product I've encountered. Avoid!", type: "neg" },
+  { text: "Complete waste of money and time. Deeply frustrating experience.", type: "neg" },
+  { text: "Terrible experience from start to finish. Would give 0 stars.", type: "neg" },
+  // Edge cases
+  { text: "Not bad at all — I actually didn't dislike it one bit", type: "edge", label: "🔬 Edge Case" },
+  { text: "I can't say this didn't exceed my very low expectations", type: "edge", label: "🔬 Edge Case" },
+  { text: "Oh great, another 'amazing' product that breaks in a week 🙄", type: "edge", label: "🔬 Edge Case" },
+  { text: "I was pleasantly surprised — I expected to hate it but didn't", type: "edge", label: "🔬 Edge Case" },
+  { text: "It's neither the best nor the worst thing I've used this year", type: "edge", label: "🔬 Edge Case" },
+];
+
+// ── INIT CHIPS ───────────────────────────────────────
+function initChips() {
+  const rows = { pos: $("chips-row-1"), neu: $("chips-row-1"), neg: $("chips-row-2"), edge: $("chips-row-3") };
+  // redistribute: pos chips in row1, neu+neg in row2, edge in row3
+  const row1 = $("chips-row-1"), row2 = $("chips-row-2"), row3 = $("chips-row-3");
+  CHIPS.forEach(chip => {
+    const el = document.createElement("button");
+    el.className = "chip";
+    el.setAttribute("aria-label", `Example: ${chip.text}`);
+    const dot = document.createElement("span");
+    dot.className = `chip-dot ${chip.type}`;
+    el.appendChild(dot);
+    if (chip.label) {
+      const lbl = document.createElement("span");
+      lbl.textContent = chip.label + ": ";
+      lbl.style.cssText = "color:var(--accent-purple);font-size:11px;font-weight:600;";
+      el.appendChild(lbl);
+    }
+    el.appendChild(document.createTextNode(chip.text));
+    el.addEventListener("click", () => {
+      textInput.value = chip.text;
+      updateCharCounter();
+      autoResizeTextarea();
+      runAnalysis();
+    });
+    if (chip.type === "pos") row1.appendChild(el);
+    else if (chip.type === "neu" || chip.type === "neg") row2.appendChild(el);
+    else row3.appendChild(el);
+  });
+}
+
+// ── API FUNCTIONS ────────────────────────────────────
+
+/** Ping the model to check status */
+async function pingModel() {
+  setModelStatus("checking");
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    const t0 = Date.now();
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inputs: "Hello world" }),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    const elapsed = Date.now() - t0;
+
+    if (res.status === 503) {
+      const json = await res.json().catch(() => ({}));
+      setModelStatus("warming", json.estimated_time);
+      scheduleRetry();
+      return;
+    }
+    if (res.ok) {
+      retryCount = 0;
+      clearTimers();
+      modelReady = true;
+      enableAnalyzeBtn();
+      setModelStatus("online", elapsed);
+      return;
+    }
+    setModelStatus("error");
+  } catch (e) {
+    if (e.name === "AbortError") setModelStatus("error");
+    else setModelStatus("error");
+  }
+}
+
+/** Main analysis call */
+async function analyzeText(text) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60000);
+  const t0 = Date.now();
+
+  // Show warmup message if slow
+  warmupMsgTimer = setTimeout(() => {
+    const twEl = $("typewriter-msg");
+    if (twEl) twEl.textContent = "⏳ Hugging Face is warming up the model. This can take 20–50 seconds on first use.";
+  }, WARMUP_TIMEOUT);
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inputs: text }),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    clearTimeout(warmupMsgTimer);
+
+    const elapsed = Date.now() - t0;
+
+    if (res.status === 503) {
+      const json = await res.json().catch(() => ({}));
+      showError("Model warming up", `The model is loading. Please wait ~${Math.ceil((json.estimated_time||30))}s and try again.`);
+      return null;
+    }
+    if (res.status === 429) {
+      showError("Rate limit reached", "Too many requests. Please wait 60 seconds and try again.");
+      return null;
+    }
+    if (res.status >= 500) {
+      showError("Server error", "Hugging Face returned a server error. Retrying...");
+      return null;
+    }
+    if (!res.ok) {
+      showError("Request failed", `Unexpected status: ${res.status}`);
+      return null;
+    }
+
+    const json = await res.json();
+    if (!Array.isArray(json) || !json[0]?.label) {
+      showError("Unexpected response", "The model returned an unexpected format.");
+      return null;
+    }
+
+    // Build scores map: { Positive, Neutral, Negative }
+    const scores = {};
+    json.forEach(item => { scores[item.label] = item.score; });
+    const winner = json.reduce((a,b) => a.score > b.score ? a : b);
+
+    return { label: winner.label, score: winner.score, scores, elapsed };
+  } catch (e) {
+    clearTimeout(timeout);
+    clearTimeout(warmupMsgTimer);
+    if (e.name === "AbortError") {
+      showError("Request timeout", "The request took too long. Please try again.");
+    } else {
+      showError("Connection error", "Could not reach the model. Check your internet connection.");
+    }
+    return null;
+  }
+}
+
+/** Sequential batch analysis */
+async function analyzeBatch(texts) {
+  const results = [];
+  for (let i = 0; i < texts.length; i++) {
+    updateBatchProgress(i + 1, texts.length);
+    const res = await analyzeText(texts[i]);
+    results.push({ text: texts[i], result: res });
+    if (res) renderBatchRow(i + 1, texts[i], res, results);
+  }
+  return results;
+}
+
+// ── MODEL STATUS UI ──────────────────────────────────
+
+function clearTimers() {
+  if (retryTimer)     { clearInterval(retryTimer);     retryTimer = null; }
+  if (retryCountdown) { clearInterval(retryCountdown); retryCountdown = null; }
+}
+
+function scheduleRetry() {
+  clearTimers();
+  if (retryCount >= MAX_RETRIES) { setModelStatus("error"); return; }
+  let secs = Math.floor(RETRY_INTERVAL / 1000);
+  const cdEl = document.getElementById("status-countdown");
+  if (cdEl) cdEl.textContent = `Retrying in ${secs}s...`;
+
+  retryCountdown = setInterval(() => {
+    secs--;
+    const el = document.getElementById("status-countdown");
+    if (el) el.textContent = secs > 0 ? `Retrying in ${secs}s...` : "Retrying now...";
+    if (secs <= 0) { clearInterval(retryCountdown); retryCountdown = null; }
+  }, 1000);
+
+  retryTimer = setTimeout(() => {
+    retryCount++;
+    pingModel();
+  }, RETRY_INTERVAL);
+}
+
+function setModelStatus(state, extra) {
+  // Reset bar
+  statusBar.style.background = "";
+  statusBar.style.borderLeft = "";
+  const inner = statusBarInner;
+
+  navDot.className = "status-dot";
+
+  if (state === "checking") {
+    statusBar.style.background = "var(--bg-tertiary)";
+    inner.innerHTML = `<div class="status-spinner"></div><span class="status-text">Checking model status...</span>`;
+    navDot.classList.add("checking");
+    navStatusText.textContent = "Checking...";
+  }
+  else if (state === "warming") {
+    statusBar.style.background = "linear-gradient(90deg, #78350f22, #1a0a0033)";
+    statusBar.style.borderLeft = "3px solid var(--neutral)";
+    retryCount = retryCount || 0;
+    inner.innerHTML = `
+      <span style="font-size:1.1rem;">🔥</span>
+      <div style="flex:1;">
+        <div class="status-text" style="color:var(--neutral);">Model is warming up — this is normal for Hugging Face free tier spaces</div>
+        <div class="status-progress-wrap" style="margin-top:8px;"><div class="status-progress-bar"></div></div>
+        <div style="display:flex;gap:16px;align-items:center;margin-top:8px;flex-wrap:wrap;">
+          <span class="status-retry-info" id="status-countdown">Retrying in ${Math.floor(RETRY_INTERVAL/1000)}s...</span>
+          <span class="status-retry-info">Attempt ${retryCount+1}/${MAX_RETRIES}</span>
+          <button class="btn-sm" id="try-now-btn">Try Now</button>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Hugging Face free spaces sleep after inactivity. Estimated wait: 20–50 seconds.</div>
+      </div>`;
+    navDot.classList.add("warming");
+    navStatusText.textContent = "Warming Up";
+    const tryNowBtn = document.getElementById("try-now-btn");
+    if (tryNowBtn) tryNowBtn.addEventListener("click", () => { clearTimers(); retryCount++; pingModel(); });
+  }
+  else if (state === "online") {
+    statusBar.style.background = "linear-gradient(90deg, #052e1622, #001a0022)";
+    statusBar.style.borderLeft = "3px solid var(--positive)";
+    inner.innerHTML = `
+      <span style="width:10px;height:10px;border-radius:50%;background:var(--positive);animation:pulse 2s infinite;flex-shrink:0;"></span>
+      <span class="status-text" style="color:var(--positive);">✅ Model is online and ready</span>
+      ${extra ? `<span class="response-badge">Last response: ${extra}ms</span>` : ""}`;
+    navDot.classList.add("online");
+    navStatusText.textContent = "Model Online";
+    // Fade to minimal after 4s
+    setTimeout(() => {
+      if (statusBar) {
+        inner.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:var(--positive);flex-shrink:0;"></span><span style="font-size:13px;color:var(--positive);">Model ready</span>`;
+      }
+    }, 4000);
+  }
+  else if (state === "error") {
+    statusBar.style.background = "linear-gradient(90deg, #2d0a0a22, #1a000022)";
+    statusBar.style.borderLeft = "3px solid var(--negative)";
+    inner.innerHTML = `
+      <span style="font-size:1.1rem;">❌</span>
+      <span class="status-text" style="color:var(--negative);">Model unreachable. Check your connection or try again later.</span>
+      <button class="btn-sm" id="retry-conn-btn">Retry Connection</button>`;
+    navDot.classList.add("error");
+    navStatusText.textContent = "Offline";
+    const retryBtn = document.getElementById("retry-conn-btn");
+    if (retryBtn) retryBtn.addEventListener("click", () => { retryCount = 0; pingModel(); });
+  }
+}
+
+// ── UI STATE ─────────────────────────────────────────
+
+function enableAnalyzeBtn() {
+  analyzeBtn.disabled = false;
+  analyzeBtn.removeAttribute("aria-disabled");
+  analyzeBtn.title = "";
+}
+
+function disableAnalyzeBtn() {
+  analyzeBtn.disabled = true;
+  analyzeBtn.setAttribute("aria-disabled", "true");
+  analyzeBtn.title = "Model is warming up, please wait...";
+}
+
+const TYPEWRITER_MSGS = [
+  "🧠 Tokenizing your text...",
+  "🔍 Running through RoBERTa layers...",
+  "📊 Computing attention weights...",
+  "🎯 Classifying sentiment...",
+  "✨ Almost there...",
+];
+
+function showLoading() {
+  resultsDivider.style.display = "block";
+  loadingState.style.display = "block";
+  resultsPanel.classList.remove("show");
+  errorDisplay.classList.remove("show");
+  // typewriter
+  let idx = 0;
+  const twEl = $("typewriter-msg");
+  twEl.textContent = TYPEWRITER_MSGS[0];
+  typewriterInterval = setInterval(() => {
+    idx = (idx + 1) % TYPEWRITER_MSGS.length;
+    twEl.textContent = TYPEWRITER_MSGS[idx];
+  }, 1500);
+}
+
+function hideLoading() {
+  loadingState.style.display = "none";
+  if (typewriterInterval) { clearInterval(typewriterInterval); typewriterInterval = null; }
+  clearTimeout(warmupMsgTimer);
+}
+
+function showResults(data) {
+  hideLoading();
+  errorDisplay.classList.remove("show");
+  resultsPanel.classList.add("show");
+
+  const { label, score, scores, elapsed } = data;
+  const cls = label === "Positive" ? "pos" : label === "Negative" ? "neg" : "neu";
+  const icons = { pos: "✅", neu: "⚡", neg: "❌" };
+  const colors = { pos: "var(--positive)", neu: "var(--neutral)", neg: "var(--negative)" };
+
+  // Badge
+  resultsBadge.className = `sentiment-badge animate-bounce-in ${cls}`;
+  resultsBadge.textContent = `${icons[cls]} ${label.toUpperCase()}`;
+
+  // Confidence
+  const confEl = $("result-confidence");
+  confEl.style.color = colors[cls];
+  confEl.textContent = `${(score * 100).toFixed(1)}%`;
+
+  // Interpretation
+  const interp = $("interpretation");
+  interp.style.borderColor = colors[cls];
+  interp.style.background = `${colors[cls]}15`;
+  interp.textContent = getInterpretation(label, score);
+
+  // Scores (normalize — model may return subset or different keys)
+  const posScore = scores["Positive"] ?? scores["positive"] ?? 0;
+  const neuScore = scores["Neutral"]  ?? scores["neutral"]  ?? 0;
+  const negScore = scores["Negative"] ?? scores["negative"] ?? 0;
+
+  // 3-class cards
+  const cards = {
+    pos: { pct: $("pct-pos"), bar: $("bar-pos"), card: $("card-pos"), score: posScore, cls: "pos" },
+    neu: { pct: $("pct-neu"), bar: $("bar-neu"), card: $("card-neu"), score: neuScore, cls: "neu" },
+    neg: { pct: $("pct-neg"), bar: $("bar-neg"), card: $("card-neg"), score: negScore, cls: "neg" },
+  };
+  Object.entries(cards).forEach(([k, v]) => {
+    v.pct.textContent = `${(v.score * 100).toFixed(1)}%`;
+    setTimeout(() => { v.bar.style.width = `${(v.score * 100).toFixed(1)}%`; }, 100);
+    v.card.className = `class-card${k === cls ? ` winner ${cls}` : ""}`;
+  });
+
+  // Charts
+  createDonutChart({ posScore, neuScore, negScore });
+  createBarChart({ posScore, neuScore, negScore });
+
+  // Response time
+  $("resp-time-badge").textContent = `⚡ Response: ${elapsed}ms`;
+
+  // Store last result for copy/share
+  lastAnalyzedText = textInput.value;
+
+  // History
+  const entry = {
+    text: textInput.value,
+    label, score, scores: { posScore, neuScore, negScore },
+    elapsed,
+    timestamp: new Date()
+  };
+  analysisHistory.unshift(entry);
+  if (analysisHistory.length > 8) analysisHistory.pop();
+  updateHistory();
+  updateSessionStats(entry);
+  updateTimelineChart(entry);
+}
+
+function clearResults() {
+  resultsPanel.classList.remove("show");
+  errorDisplay.classList.remove("show");
+  hideLoading();
+  resultsDivider.style.display = "none";
+}
+
+function showError(title, msg) {
+  hideLoading();
+  resultsPanel.classList.remove("show");
+  errorDisplay.classList.add("show");
+  $("error-title").textContent = title;
+  $("error-msg").textContent = msg;
+  resultsDivider.style.display = "block";
+}
+
+// ── RUN ANALYSIS ─────────────────────────────────────
+
+async function runAnalysis() {
+  const text = textInput.value.trim();
+  if (text.length < 3) {
+    showError("Text too short", "Please enter at least a few words.");
+    resultsDivider.style.display = "block";
+    return;
+  }
+  if (text.length > MAX_CHARS) {
+    showError("Text too long", `Maximum ${MAX_CHARS} characters. Current: ${text.length}.`);
+    resultsDivider.style.display = "block";
+    return;
+  }
+  if (isAnalyzing) return;
+  isAnalyzing = true;
+
+  analyzeBtn.disabled = true;
+  analyzeBtnText.textContent = "Analyzing...";
+  analyzeBtn.querySelector(".fa-sparkles")?.classList.add("btn-spinner");
+  analyzeBtn.insertAdjacentHTML("afterbegin", '<span class="btn-spinner"></span>');
+  showLoading();
+
+  const data = await analyzeText(text);
+
+  analyzeBtn.querySelector(".btn-spinner")?.remove();
+  analyzeBtn.disabled = !modelReady;
+  analyzeBtnText.textContent = "Analyze Sentiment";
+  isAnalyzing = false;
+
+  if (data) showResults(data);
+}
+
+// ── HISTORY ──────────────────────────────────────────
+
+function updateHistory() {
+  if (!analysisHistory.length) { historySection.style.display = "none"; return; }
+  historySection.style.display = "block";
+  historySection.classList.add("visible");
+  historyList.innerHTML = "";
+
+  const colors = { Positive: "var(--positive)", Neutral: "var(--neutral)", Negative: "var(--negative)" };
+  const icons  = { Positive: "✅", Neutral: "⚡", Negative: "❌" };
+
+  analysisHistory.forEach((entry, i) => {
+    const cls = entry.label;
+    const col = colors[cls];
+    const div = document.createElement("div");
+    div.className = "history-item animate-slide-right";
+    div.style.animationDelay = `${i * 50}ms`;
+    div.innerHTML = `
+      <span class="hist-dot" style="background:${col};"></span>
+      <span class="hist-label" style="color:${col};">${icons[cls]} ${cls}</span>
+      <span class="hist-text">${truncate(entry.text, 80)}</span>
+      <span class="hist-time">${formatTime(entry.timestamp)}</span>
+      <span class="hist-score" style="color:${col};border-color:${col};">${(entry.score*100).toFixed(1)}%</span>
+      <button class="btn-reanalyze" data-idx="${i}" aria-label="Re-analyze: ${truncate(entry.text, 40)}">↻</button>
+    `;
+    historyList.appendChild(div);
+  });
+
+  document.querySelectorAll(".btn-reanalyze").forEach(btn => {
+    btn.addEventListener("click", e => {
+      const idx = parseInt(e.currentTarget.dataset.idx);
+      textInput.value = analysisHistory[idx].text;
+      updateCharCounter();
+      autoResizeTextarea();
+      textInput.scrollIntoView({ behavior: "smooth" });
+      runAnalysis();
+    });
+  });
+}
+
+// ── SESSION STATS ─────────────────────────────────────
+
+function updateSessionStats(entry) {
+  sessionStats.total++;
+  sessionStats[entry.label.toLowerCase()]++;
+  sessionStats.totalTime += entry.elapsed;
+
+  if (sessionStats.total >= 3) {
+    $("stats-section").style.display = "block";
+    $("stats-section").classList.add("visible");
+  }
+
+  animateCount($("stat-total"), sessionStats.total - 1, sessionStats.total, 600);
+  const avg = Math.round(sessionStats.totalTime / sessionStats.total);
+  $("stat-speed").textContent = avg + "ms";
+
+  const mc = Math.max(sessionStats.positive, sessionStats.neutral, sessionStats.negative);
+  const label = sessionStats.positive === mc ? "✅ Pos" : sessionStats.neutral === mc ? "⚡ Neu" : "❌ Neg";
+  $("stat-common").textContent = label;
+
+  const tot = sessionStats.total;
+  $("stat-spread").textContent = `${Math.round(sessionStats.positive/tot*100)}P·${Math.round(sessionStats.neutral/tot*100)}N·${Math.round(sessionStats.negative/tot*100)}Ng`;
+}
+
+// ── CHARTS ───────────────────────────────────────────
+
+function chartColors() {
+  return {
+    pos: "#10b981", neu: "#f59e0b", neg: "#ef4444",
+    posA: "#10b981cc", neuA: "#f59e0bcc", negA: "#ef4444cc",
+    grid: getComputedStyle(document.documentElement).getPropertyValue("--border").trim() || "#2a2a3d",
+    text: getComputedStyle(document.documentElement).getPropertyValue("--text-secondary").trim() || "#8888aa",
+  };
+}
+
+function createDonutChart({ posScore, neuScore, negScore }) {
+  if (donutChart) { donutChart.destroy(); donutChart = null; }
+  const c = chartColors();
+  const ctx = document.getElementById("donut-chart").getContext("2d");
+  donutChart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: ["Positive", "Neutral", "Negative"],
+      datasets: [{ data: [posScore, neuScore, negScore], backgroundColor: [c.posA, c.neuA, c.negA], borderColor: [c.pos, c.neu, c.neg], borderWidth: 2, hoverOffset: 6 }]
+    },
+    options: {
+      cutout: "70%",
+      animation: { animateScale: true, animateRotate: true, duration: 800 },
+      plugins: {
+        legend: { position: "bottom", labels: { color: c.text, padding: 12, boxWidth: 12, font: { family: "Inter" } } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${(ctx.parsed * 100).toFixed(1)}%` } }
+      }
+    },
+    plugins: [{
+      id: "centerText",
+      afterDraw(chart) {
+        const { ctx, chartArea: { width, height, left, top } } = chart;
+        const maxIdx = [posScore, neuScore, negScore].indexOf(Math.max(posScore, neuScore, negScore));
+        const labels = ["POS", "NEU", "NEG"];
+        const scores = [posScore, neuScore, negScore];
+        const colors = [c.pos, c.neu, c.neg];
+        ctx.save();
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        const cx = left + width / 2, cy = top + height / 2;
+        ctx.font = "bold 18px Space Grotesk, sans-serif";
+        ctx.fillStyle = colors[maxIdx];
+        ctx.fillText(labels[maxIdx], cx, cy - 10);
+        ctx.font = "500 13px Inter, sans-serif";
+        ctx.fillStyle = c.text;
+        ctx.fillText(`${(scores[maxIdx]*100).toFixed(1)}%`, cx, cy + 12);
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+function createBarChart({ posScore, neuScore, negScore }) {
+  if (barChart) { barChart.destroy(); barChart = null; }
+  const c = chartColors();
+  const ctx = document.getElementById("bar-chart").getContext("2d");
+  barChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: ["Positive", "Neutral", "Negative"],
+      datasets: [{
+        data: [posScore, neuScore, negScore],
+        backgroundColor: [c.posA, c.neuA, c.negA],
+        borderColor: [c.pos, c.neu, c.neg],
+        borderWidth: 2, borderRadius: 6, barThickness: 28
+      }]
+    },
+    options: {
+      indexAxis: "y",
+      animation: { duration: 600 },
+      scales: {
+        x: { min: 0, max: 1, grid: { color: c.grid }, ticks: { color: c.text, callback: v => `${(v*100).toFixed(0)}%`, font: { family: "Inter" } } },
+        y: { grid: { display: false }, ticks: { color: c.text, font: { family: "Inter" } } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${(ctx.parsed.x * 100).toFixed(1)}%` } }
+      }
+    }
+  });
+}
+
+function updateTimelineChart(entry) {
+  const labels = analysisHistory.map((_, i) => `#${analysisHistory.length - i}`).reverse();
+  const posData = [...analysisHistory].reverse().map(e => e.scores?.posScore ?? 0);
+  const neuData = [...analysisHistory].reverse().map(e => e.scores?.neuScore ?? 0);
+  const negData = [...analysisHistory].reverse().map(e => e.scores?.negScore ?? 0);
+  const c = chartColors();
+
+  if (!timelineChart) {
+    const ctx = document.getElementById("timeline-chart").getContext("2d");
+    timelineChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          { label: "Positive", data: posData, borderColor: c.pos, backgroundColor: c.posA + "44", tension: 0.4, pointRadius: 5, pointHoverRadius: 8, fill: false },
+          { label: "Neutral",  data: neuData, borderColor: c.neu, backgroundColor: c.neuA + "44", tension: 0.4, pointRadius: 5, pointHoverRadius: 8, fill: false },
+          { label: "Negative", data: negData, borderColor: c.neg, backgroundColor: c.negA + "44", tension: 0.4, pointRadius: 5, pointHoverRadius: 8, fill: false },
+        ]
+      },
+      options: {
+        scales: {
+          x: { grid: { color: c.grid }, ticks: { color: c.text } },
+          y: { min: 0, max: 1, grid: { color: c.grid }, ticks: { color: c.text, callback: v => `${(v*100).toFixed(0)}%` } }
+        },
+        plugins: { legend: { labels: { color: c.text, font: { family: "Inter" } } }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${(ctx.parsed.y*100).toFixed(1)}%` } } },
+        animation: { duration: 400 }
+      }
+    });
+  } else {
+    timelineChart.data.labels = labels;
+    timelineChart.data.datasets[0].data = posData;
+    timelineChart.data.datasets[1].data = neuData;
+    timelineChart.data.datasets[2].data = negData;
+    timelineChart.update();
+  }
+}
+
+// ── BATCH ANALYZER ────────────────────────────────────
+
+function updateBatchProgress(current, total) {
+  $("batch-progress").style.display = "block";
+  $("batch-progress-text").textContent = `Analyzing ${current} of ${total}...`;
+  $("batch-bar").style.width = `${(current/total)*100}%`;
+}
+
+let batchRowData = [];
+
+function renderBatchRow(idx, text, result, allResults) {
+  $("batch-results-wrap").style.display = "block";
+  const tbody = $("batch-tbody");
+  const label = result.label;
+  const score = result.score;
+  const cls = label === "Positive" ? "pos" : label === "Negative" ? "neg" : "neu";
+  const colors = { pos: "var(--positive)", neu: "var(--neutral)", neg: "var(--negative)" };
+  const col = colors[cls];
+
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td style="color:var(--text-muted);font-weight:600;">${idx}</td>
+    <td style="color:var(--text-secondary);">${truncate(text, 60)}</td>
+    <td><span class="batch-badge" style="color:${col};border-color:${col};">${label}</span></td>
+    <td class="hide-mobile" style="color:var(--text-secondary);">${(score*100).toFixed(1)}%</td>
+    <td><div class="mini-bar-wrap"><div class="mini-bar-fill" style="background:${col};width:${(score*100).toFixed(0)}%;"></div></div></td>
+  `;
+  tbody.appendChild(tr);
+  batchRowData.push({ text, label, score });
+
+  // Update summary
+  const pos = allResults.filter(r => r.result?.label === "Positive").length;
+  const neu = allResults.filter(r => r.result?.label === "Neutral").length;
+  const neg = allResults.filter(r => r.result?.label === "Negative").length;
+  $("batch-summary-text").textContent = `📊 Batch Summary: ${pos} Positive · ${neu} Neutral · ${neg} Negative`;
+}
+
+// ── CSV EXPORT ────────────────────────────────────────
+
+function exportCSV(data) {
+  const header = "text,label,confidence\n";
+  const rows = data.map(r => `"${r.text.replace(/"/g,'""')}",${r.label},${(r.score*100).toFixed(2)}%`).join("\n");
+  const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "sentiment_results.csv";
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// ── UTILITIES ─────────────────────────────────────────
+
+function debounce(fn, delay) {
+  return (...args) => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+function animateCount(el, from, to, duration) {
+  const start = performance.now();
+  const update = now => {
+    const t = Math.min((now - start) / duration, 1);
+    el.textContent = Math.round(from + (to - from) * t);
+    if (t < 1) requestAnimationFrame(update);
+  };
+  requestAnimationFrame(update);
+}
+
+function formatTime(date) {
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function truncate(str, n) {
+  return str.length > n ? str.slice(0, n) + "…" : str;
+}
+
+function copyToClipboard(text) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text);
+  } else {
+    const ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand("copy");
+    document.body.removeChild(ta);
+  }
+}
+
+function getInterpretation(label, confidence) {
+  const pct = confidence;
+  if (label === "Positive") {
+    if (pct > 0.90) return "The model detects strong positive sentiment. The text expresses clear satisfaction, enthusiasm, or approval.";
+    if (pct > 0.70) return "The model detects positive sentiment, though with some uncertainty. Overall tone leans favorable.";
+    return "Weakly positive. The text may contain mixed signals but leans slightly favorable.";
+  }
+  if (label === "Neutral") {
+    if (pct > 0.80) return "The model classifies this as neutral. The text is factual, balanced, or expresses no strong opinion.";
+    return "Moderately neutral. May contain subtle positive or negative undertones.";
+  }
+  if (label === "Negative") {
+    if (pct > 0.90) return "The model detects strong negative sentiment. The text clearly expresses dissatisfaction, frustration, or criticism.";
+    if (pct > 0.70) return "Negative sentiment detected. The overall tone is unfavorable, though not extremely so.";
+    return "Weakly negative. The text may be ambiguous but leans somewhat unfavorable.";
+  }
+  return "";
+}
+
+function applyTheme(theme) {
+  currentTheme = theme;
+  if (theme === "light") {
+    document.body.classList.add("light-mode");
+    themeIcon.className = "fa-solid fa-sun";
+  } else {
+    document.body.classList.remove("light-mode");
+    themeIcon.className = "fa-solid fa-moon";
+  }
+  localStorage.setItem("theme", theme);
+}
+
+function updateCharCounter() {
+  const len = textInput.value.length;
+  charCounter.textContent = `${len} / ${MAX_CHARS}`;
+  charCounter.className = "";
+  if (len >= 480) charCounter.classList.add("danger");
+  else if (len >= 400) charCounter.classList.add("warn");
+}
+
+function autoResizeTextarea() {
+  textInput.style.height = "auto";
+  textInput.style.height = Math.min(textInput.scrollHeight, 300) + "px";
+}
+
+// ── EVENT LISTENERS ───────────────────────────────────
+
+// Theme toggle
+themeToggle.addEventListener("click", () => {
+  applyTheme(currentTheme === "dark" ? "light" : "dark");
+});
+
+// Hamburger
+$("hamburger").addEventListener("click", () => {
+  $("nav-links").classList.toggle("open");
+});
+
+// Analyze button
+analyzeBtn.addEventListener("click", runAnalysis);
+
+// Textarea
+textInput.addEventListener("input", () => {
+  updateCharCounter();
+  autoResizeTextarea();
+});
+
+// Enter key submit
+textInput.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    runAnalysis();
+  }
+});
+
+// Auto-analyze on paste (debounced)
+textInput.addEventListener("paste", () => {
+  autoIndicator.classList.add("show");
+  const debouncedRun = debounce(() => {
+    autoIndicator.classList.remove("show");
+    runAnalysis();
+  }, 800);
+  debouncedRun();
+});
+
+// Clear button
+clearBtn.addEventListener("click", () => {
+  textInput.value = "";
+  updateCharCounter();
+  autoResizeTextarea();
+  clearResults();
+});
+
+// Error retry
+$("error-retry-btn").addEventListener("click", runAnalysis);
+
+// Copy result
+$("copy-btn").addEventListener("click", () => {
+  const badge = resultsBadge.textContent.trim();
+  const conf = $("result-confidence").textContent.trim();
+  const txt = truncate(lastAnalyzedText, 100);
+  copyToClipboard(`Sentiment: ${badge} (${conf}) | Text: "${txt}"`);
+  const btn = $("copy-btn");
+  btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+  btn.style.color = "var(--positive)";
+  setTimeout(() => { btn.innerHTML = '<i class="fa-regular fa-clipboard"></i> Copy Result'; btn.style.color = ""; }, 2000);
+});
+
+// Share button
+$("share-btn").addEventListener("click", () => {
+  const url = `${location.href.split("?")[0]}?text=${encodeURIComponent(lastAnalyzedText.slice(0, 200))}`;
+  copyToClipboard(url);
+  const btn = $("share-btn");
+  btn.innerHTML = '<i class="fa-solid fa-check"></i> Link Copied!';
+  btn.style.color = "var(--positive)";
+  setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-link"></i> Share'; btn.style.color = ""; }, 2000);
+});
+
+// Analyze another
+$("analyze-another-btn").addEventListener("click", () => {
+  textInput.value = "";
+  updateCharCounter();
+  autoResizeTextarea();
+  clearResults();
+  textInput.scrollIntoView({ behavior: "smooth" });
+  textInput.focus();
+});
+
+// Clear history
+$("clear-history-btn").addEventListener("click", () => {
+  const items = document.querySelectorAll(".history-item");
+  items.forEach((item, i) => {
+    setTimeout(() => { item.style.opacity = "0"; item.style.transform = "translateX(20px)"; }, i * 50);
+  });
+  setTimeout(() => {
+    analysisHistory = [];
+    historyList.innerHTML = "";
+    historySection.style.display = "none";
+  }, items.length * 50 + 300);
+});
+
+// Batch analyze
+$("batch-analyze-btn").addEventListener("click", async () => {
+  const raw = $("batch-input").value.trim();
+  if (!raw) return;
+  const lines = raw.split("\n").map(l => l.trim()).filter(Boolean).slice(0, 10);
+  if (!lines.length) return;
+
+  batchRowData = [];
+  $("batch-tbody").innerHTML = "";
+  $("batch-results-wrap").style.display = "none";
+  await analyzeBatch(lines);
+  $("batch-progress").style.display = "none";
+});
+
+// Export CSV
+$("export-csv-btn").addEventListener("click", () => {
+  if (batchRowData.length) exportCSV(batchRowData);
+});
+
+// Scroll: navbar opacity
+window.addEventListener("scroll", () => {
+  navbar.classList.toggle("scrolled", window.scrollY > 20);
+}, { passive: true });
+
+// Pre-fill from URL param
+(function checkUrlParam() {
+  const params = new URLSearchParams(location.search);
+  const text = params.get("text");
+  if (text) { textInput.value = text; updateCharCounter(); autoResizeTextarea(); }
+})();
+
+// Intersection Observer for scroll reveals
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("visible"); });
+}, { threshold: 0.1 });
+document.querySelectorAll(".reveal").forEach(el => observer.observe(el));
+
+// ── INIT ─────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  applyTheme(currentTheme);
+  initChips();
+  disableAnalyzeBtn();
+  pingModel();
+});
+</script>
+</body>
+</html>
