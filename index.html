@@ -1141,33 +1141,47 @@ input, textarea { font-family: inherit; }
   }
 
   /** Parse API response into standardized scores object */
+   /** Parse API response into standardized scores object */
   function parseResponse(data) {
-    if (!Array.isArray(data) || data.length === 0 || !data[0].label || data[0].score === undefined) {
-      throw new Error('Unexpected response from model');
-    }
-    const labels = data.map(d => d.label);
-    const allThree = labels.includes('Positive') && labels.includes('Neutral') && labels.includes('Negative');
-
-    if (allThree) {
-      const scores = {
-        Positive: data.find(d => d.label === 'Positive').score,
-        Neutral: data.find(d => d.label === 'Neutral').score,
-        Negative: data.find(d => d.label === 'Negative').score
-      };
-      return { topLabel: data[0].label, topScore: data[0].score, scores };
+    // Handle single-object response: { label, score, all_scores: [...] }
+    if (data && typeof data === 'object' && !Array.isArray(data) && data.label && data.all_scores && Array.isArray(data.all_scores)) {
+      const scores = { Positive: 0, Neutral: 0, Negative: 0 };
+      data.all_scores.forEach(function(item) {
+        if (scores.hasOwnProperty(item.label)) {
+          scores[item.label] = item.score;
+        }
+      });
+      return { topLabel: data.label, topScore: data.score, scores };
     }
 
-    // Only top-1 returned — distribute remainder
-    const topLabel = data[0].label;
-    const topScore = data[0].score;
-    const remainder = Math.max(0, 1 - topScore);
-    const others = ['Positive', 'Neutral', 'Negative'].filter(l => l !== topLabel);
-    const half = remainder / 2;
-    const scores = { Positive: 0, Neutral: 0, Negative: 0 };
-    scores[topLabel] = topScore;
-    scores[others[0]] = half;
-    scores[others[1]] = remainder - half;
-    return { topLabel, topScore, scores };
+    // Handle array response: [{ label, score }, ...]
+    if (Array.isArray(data) && data.length > 0 && data[0].label && data[0].score !== undefined) {
+      const labels = data.map(function(d) { return d.label; });
+      const allThree = labels.indexOf('Positive') !== -1 && labels.indexOf('Neutral') !== -1 && labels.indexOf('Negative') !== -1;
+
+      if (allThree) {
+        const scores = {
+          Positive: data.find(function(d) { return d.label === 'Positive'; }).score,
+          Neutral: data.find(function(d) { return d.label === 'Neutral'; }).score,
+          Negative: data.find(function(d) { return d.label === 'Negative'; }).score
+        };
+        return { topLabel: data[0].label, topScore: data[0].score, scores };
+      }
+
+      // Only top-1 returned — distribute remainder
+      const topLabel = data[0].label;
+      const topScore = data[0].score;
+      const remainder = Math.max(0, 1 - topScore);
+      const others = ['Positive', 'Neutral', 'Negative'].filter(function(l) { return l !== topLabel; });
+      const half = remainder / 2;
+      const scores = { Positive: 0, Neutral: 0, Negative: 0 };
+      scores[topLabel] = topScore;
+      scores[others[0]] = half;
+      scores[others[1]] = remainder - half;
+      return { topLabel: topLabel, topScore: topScore, scores: scores };
+    }
+
+    throw new Error('Unexpected response from model');
   }
 
   /** Get sentiment color class */
