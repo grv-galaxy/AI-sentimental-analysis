@@ -262,6 +262,41 @@ input, textarea { font-family: inherit; }
 }
 
 /* ═══════════════════════════════════════════════════════════
+   MODEL SELECTOR
+   ═══════════════════════════════════════════════════════════ */
+.model-select-wrap { margin-bottom: 22px; }
+.model-select-label {
+  font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px;
+  text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;
+}
+.model-select-group {
+  display: inline-flex; background: var(--bg-tertiary); border: 1px solid var(--border);
+  border-radius: 14px; padding: 4px; gap: 4px;
+}
+.model-select-btn {
+  display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 10px;
+  font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);
+  transition: all 0.2s ease; position: relative; white-space: nowrap;
+}
+.model-select-btn:hover { color: var(--text-primary); }
+.model-select-btn.active {
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+  color: #fff; box-shadow: 0 4px 15px rgba(108,99,255,0.35);
+}
+.model-select-btn .model-recommended-badge {
+  font-size: 0.6rem; background: var(--positive); color: #fff; padding: 1px 6px;
+  border-radius: 999px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase;
+}
+.model-select-btn:not(.active) .model-recommended-badge { background: var(--positive-glow); color: var(--positive); }
+.model-select-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 8px; line-height: 1.5; }
+.model-select-sub strong { color: var(--text-secondary); }
+
+@media (max-width: 480px) {
+  .model-select-group { flex-direction: column; width: 100%; }
+  .model-select-btn { justify-content: center; }
+}
+
+/* ═══════════════════════════════════════════════════════════
    MODEL STATUS BAR
    ═══════════════════════════════════════════════════════════ */
 .model-status-bar {
@@ -365,6 +400,8 @@ input, textarea { font-family: inherit; }
 .chips-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; }
 .chips-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 8px; scrollbar-width: none; -ms-overflow-style: none; scroll-snap-type: x mandatory; }
 .chips-row::-webkit-scrollbar { display: none; }
+.chips-row.hi-only { display: none; }
+.chips-row.hi-only.visible { display: flex; }
 .chip {
   display: flex; align-items: center; gap: 6px; white-space: nowrap;
   background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 999px;
@@ -378,6 +415,7 @@ input, textarea { font-family: inherit; }
 .chip-dot.neutral { background: var(--neutral-c); }
 .chip-dot.negative { background: var(--negative); }
 .chip-dot.edge { background: var(--accent-purple); }
+.chip-dot.hi { background: #f59e0b; }
 
 /* Analyze Button */
 .analyze-btn {
@@ -544,6 +582,7 @@ input, textarea { font-family: inherit; }
 .history-meta { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .history-time { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
 .history-score { font-size: 0.78rem; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: var(--bg-tertiary); }
+.history-model-tag { font-size: 0.68rem; font-weight: 600; padding: 2px 7px; border-radius: 6px; background: var(--bg-tertiary); color: var(--text-muted); border: 1px solid var(--border); }
 .history-reanalyze {
   width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center;
   justify-content: center; font-size: 0.75rem; color: var(--text-muted);
@@ -750,16 +789,17 @@ input, textarea { font-family: inherit; }
 <section class="hero">
   <div class="hero-blob hero-blob-1"></div>
   <div class="hero-blob hero-blob-2"></div>
-  <div class="hero-pill animate-fade-up delay-1">⚡ Powered by RoBERTa Base</div>
+  <div class="hero-pill animate-fade-up delay-1" id="heroPill">⚡ Powered by MuRIL · English + Hindi + Hinglish</div>
   <h1 class="animate-fade-up delay-2">Understand the Emotion Behind Every Word</h1>
-  <p class="hero-subtitle animate-fade-up delay-3">
-    State-of-the-art 3-class sentiment analysis powered by fine-tuned RoBERTa.
-    Trained on 200,000+ samples across reviews, tweets, and social media.
+  <p class="hero-subtitle animate-fade-up delay-3" id="heroSubtitle">
+    State-of-the-art 3-class sentiment analysis powered by fine-tuned MuRIL.
+    Trained on 330,000+ samples across English, Hindi, and Hinglish reviews, tweets, and social media.
   </p>
   <div class="hero-stats animate-fade-up delay-4">
-    <span class="hero-stat-pill"><i class="fa-solid fa-database"></i> 200K+ Training Samples</span>
+    <span class="hero-stat-pill"><i class="fa-solid fa-database"></i> <span id="heroStatSamples">330K+ Training Samples</span></span>
     <span class="hero-stat-pill"><i class="fa-solid fa-layer-group"></i> 3 Sentiment Classes</span>
-    <span class="hero-stat-pill"><i class="fa-solid fa-brain"></i> RoBERTa Base</span>
+    <span class="hero-stat-pill"><i class="fa-solid fa-language"></i> <span id="heroStatLang">English, Hindi &amp; Hinglish</span></span>
+    <span class="hero-stat-pill"><i class="fa-solid fa-brain"></i> <span id="heroStatArch">MuRIL Base</span></span>
   </div>
   <a href="#analyzer" class="scroll-arrow" aria-label="Scroll down"><i class="fa-solid fa-chevron-down"></i></a>
 </section>
@@ -782,16 +822,33 @@ input, textarea { font-family: inherit; }
      ═══════════════════════════════════════════════════════════ -->
 <section class="analyzer-section" id="analyzer">
   <div class="analyzer-card">
+
+    <!-- Model Selector -->
+    <div class="model-select-wrap">
+      <div class="model-select-label">Choose model</div>
+      <div class="model-select-group" id="modelSelectGroup" role="tablist" aria-label="Select sentiment model">
+        <button class="model-select-btn" data-model="v2" role="tab" aria-selected="true">
+          🧠 v2 · MuRIL <span class="model-recommended-badge">Recommended</span>
+        </button>
+        <button class="model-select-btn" data-model="v1" role="tab" aria-selected="false">
+          ⚡ v1 · RoBERTa
+        </button>
+      </div>
+      <div class="model-select-sub" id="modelSelectSub">
+        <strong>v2 (MuRIL)</strong> understands English, Hindi, and Hinglish (e.g. "ye movie achi hai") — recommended for most use cases.
+      </div>
+    </div>
+
     <!-- Input Area -->
     <label class="input-label" for="textInput">
       Enter text to analyze
       <span class="tooltip-icon" tabindex="0">
         <i class="fa-solid fa-circle-info"></i>
-        <span class="tooltip-text">Works best with 10–200 words. Supports English text, tweets, reviews, and comments.</span>
+        <span class="tooltip-text" id="inputTooltipText">Works best with 10–200 words. Supports English, Hindi, and Hinglish text, tweets, reviews, and comments.</span>
       </span>
     </label>
     <div class="textarea-wrap">
-      <textarea id="textInput" placeholder="Type or paste your text here... e.g. 'This product completely exceeded my expectations!'" maxlength="500" aria-label="Text to analyze"></textarea>
+      <textarea id="textInput" placeholder="Type in English, Hindi, or Hinglish... e.g. 'ye movie achi hai' or 'This product completely exceeded my expectations!'" maxlength="500" aria-label="Text to analyze"></textarea>
     </div>
     <div class="textarea-footer">
       <span class="char-counter" id="charCounter">0 / 500</span>
@@ -831,6 +888,13 @@ input, textarea { font-family: inherit; }
         <button class="chip" data-text="Oh great, another 'amazing' product that breaks in a week 🙄" data-dot="edge"><span class="chip-dot edge"></span>🔬 Oh great, another 'amazing'...</button>
         <button class="chip" data-text="I was pleasantly surprised — I expected to hate it but didn't" data-dot="edge"><span class="chip-dot edge"></span>🔬 I was pleasantly surprised...</button>
         <button class="chip" data-text="It's neither the best nor the worst thing I've used this year" data-dot="edge"><span class="chip-dot edge"></span>🔬 It's neither the best nor...</button>
+      </div>
+      <div class="chips-row hi-only" id="chipsRow5">
+        <button class="chip" data-text="ye movie achi hai" data-dot="hi"><span class="chip-dot hi"></span>🇮🇳 ye movie achi hai</button>
+        <button class="chip" data-text="yeh film bahut buri thi, paisa barbaad" data-dot="hi"><span class="chip-dot hi"></span>🇮🇳 yeh film bahut buri thi...</button>
+        <button class="chip" data-text="movie thik thak tha, kuch khaas nahi" data-dot="hi"><span class="chip-dot hi"></span>🇮🇳 movie thik thak tha...</button>
+        <button class="chip" data-text="यह फिल्म बहुत अच्छी है" data-dot="hi"><span class="chip-dot hi"></span>🇮🇳 यह फिल्म बहुत अच्छी है</button>
+        <button class="chip" data-text="यह फिल्म बहुत खराब थी" data-dot="hi"><span class="chip-dot hi"></span>🇮🇳 यह फिल्म बहुत खराब थी</button>
       </div>
     </div>
 
@@ -876,8 +940,8 @@ input, textarea { font-family: inherit; }
 <section class="batch-section reveal" id="batchSection">
   <div class="batch-card">
     <h2>📦 Batch Analyzer</h2>
-    <p class="subtitle">Analyze multiple texts at once — one per line, up to 10 texts</p>
-    <textarea class="batch-textarea" id="batchInput" placeholder="I loved this product!&#10;The service was average.&#10;Absolutely terrible experience.&#10;Can't recommend this highly enough."></textarea>
+    <p class="subtitle">Analyze multiple texts at once — one per line, up to 10 texts. Uses the model selected above.</p>
+    <textarea class="batch-textarea" id="batchInput" placeholder="I loved this product!&#10;The service was average.&#10;Absolutely terrible experience.&#10;ye movie achi hai"></textarea>
     <div class="batch-progress" id="batchProgress">
       <span id="batchProgressText">Analyzing 0 of 0...</span>
       <div class="batch-progress-bar"><div class="batch-progress-fill" id="batchProgressFill" style="width:0%"></div></div>
@@ -924,17 +988,17 @@ input, textarea { font-family: inherit; }
     <div class="info-card">
       <div class="info-card-icon">🧠</div>
       <h3>Architecture</h3>
-      <p>Built on RoBERTa Base (125M parameters), fine-tuned with a custom 3-class classification head. Trained with AdamW optimizer, linear warmup scheduler, mixed-precision FP16, and label smoothing.</p>
+      <p id="infoArchitecture">Built on MuRIL Base (238M parameters), fine-tuned with a custom 3-class classification head and class-weighted loss. Trained with AdamW optimizer, linear warmup scheduler, and mixed-precision FP16.</p>
     </div>
     <div class="info-card">
       <div class="info-card-icon">📦</div>
       <h3>Training Data</h3>
-      <p>Fine-tuned on 200,000+ samples from:</p>
-      <ul>
-        <li>IMDB movie reviews</li>
-        <li>Stanford SST-2 sentences</li>
-        <li>Twitter Tweet Eval dataset</li>
-        <li>Yelp restaurant reviews</li>
+      <p>Fine-tuned on <span id="infoDataCount">330,000+</span> samples from:</p>
+      <ul id="infoDataList">
+        <li>IMDB, SST-2, Yelp, Tweet Eval (English)</li>
+        <li>SemEval-2020 SentiMix (Hinglish tweets)</li>
+        <li>Hindi-English code-mixed tweets</li>
+        <li>ai4bharat IndicSentiment (Hindi)</li>
       </ul>
     </div>
     <div class="info-card">
@@ -943,7 +1007,7 @@ input, textarea { font-family: inherit; }
       <p><strong style="color:var(--positive)">Positive:</strong> Satisfaction, enthusiasm, praise, happiness<br>
       <strong style="color:var(--neutral-c)">Neutral:</strong> Facts, balance, no strong opinion, mixed signals<br>
       <strong style="color:var(--negative)">Negative:</strong> Frustration, criticism, disappointment, anger</p>
-      <p style="margin-top:8px">Works on reviews, tweets, comments, and general English text.</p>
+      <p style="margin-top:8px" id="infoLanguages">Works on English, Hindi, and Hinglish reviews, tweets, and comments.</p>
     </div>
   </div>
 </section>
@@ -955,10 +1019,10 @@ input, textarea { font-family: inherit; }
   <div>🧠 SentimentAI by airzipm</div>
   <div class="footer-links">
     <a href="https://github.com/grv-galaxy">GitHub</a>
-    <a href="https://huggingface.co/airzipm/sentiment-analysis-roberta">Hugging Face Model</a>
-    <a href="https://huggingface.co/datasets/airzipm/sentiment-dataset">Dataset</a>
+    <a href="https://huggingface.co/airzipm/sentiment-analysis-muril-v2" id="footerModelLink">Hugging Face Model</a>
+    <a href="https://huggingface.co/datasets/airzipm/sentiment-dataset-en-hi-hinglish-v2" id="footerDatasetLink">Dataset</a>
   </div>
-  <div>Built with RoBERTa · Chart.js · Vanilla JS</div>
+  <div id="footerBuiltWith">Built with MuRIL · Chart.js · Vanilla JS</div>
   <div class="fine-print">Model hosted on Hugging Face Inference API. Free tier spaces may have a cold start delay of 20–50s.</div>
 </footer>
 
@@ -969,9 +1033,70 @@ input, textarea { font-family: inherit; }
 (function() {
   'use strict';
 
+  // ── MODEL CONFIG ───────────────────────────────────────────
+  // ⚠️ Update apiBase for each model once its Hugging Face Space is deployed.
+  const MODELS = {
+    v2: {
+      id: 'v2',
+      label: '🧠 v2 · MuRIL',
+      shortName: 'v2 (MuRIL)',
+      apiBase: 'https://airzipm-sentimentai-api-v2.hf.space', // TODO: replace with your deployed v2 Space URL
+      heroPill: '⚡ Powered by MuRIL · English + Hindi + Hinglish',
+      heroSubtitle: 'State-of-the-art 3-class sentiment analysis powered by fine-tuned MuRIL. Trained on 330,000+ samples across English, Hindi, and Hinglish reviews, tweets, and social media.',
+      heroStatSamples: '330K+ Training Samples',
+      heroStatLang: 'English, Hindi & Hinglish',
+      heroStatArch: 'MuRIL Base',
+      tooltipText: 'Works best with 10–200 words. Supports English, Hindi, and Hinglish text, tweets, reviews, and comments.',
+      placeholder: "Type in English, Hindi, or Hinglish... e.g. 'ye movie achi hai' or 'This product completely exceeded my expectations!'",
+      selectSub: '<strong>v2 (MuRIL)</strong> understands English, Hindi, and Hinglish (e.g. "ye movie achi hai") — recommended for most use cases.',
+      architecture: 'Built on MuRIL Base (238M parameters), fine-tuned with a custom 3-class classification head and class-weighted loss. Trained with AdamW optimizer, linear warmup scheduler, and mixed-precision FP16.',
+      dataCount: '330,000+',
+      dataList: [
+        'IMDB, SST-2, Yelp, Tweet Eval (English)',
+        'SemEval-2020 SentiMix (Hinglish tweets)',
+        'Hindi-English code-mixed tweets',
+        'ai4bharat IndicSentiment (Hindi)'
+      ],
+      languages: 'Works on English, Hindi, and Hinglish reviews, tweets, and comments.',
+      hfModelUrl: 'https://huggingface.co/airzipm/sentiment-analysis-muril-v2',
+      hfDatasetUrl: 'https://huggingface.co/datasets/airzipm/sentiment-dataset-en-hi-hinglish-v2',
+      builtWith: 'Built with MuRIL · Chart.js · Vanilla JS',
+      showHindiChips: true
+    },
+    v1: {
+      id: 'v1',
+      label: '⚡ v1 · RoBERTa',
+      shortName: 'v1 (RoBERTa)',
+      apiBase: 'https://airzipm-sentimentai-api.hf.space',
+      heroPill: '⚡ Powered by RoBERTa Base',
+      heroSubtitle: 'State-of-the-art 3-class sentiment analysis powered by fine-tuned RoBERTa. Trained on 200,000+ samples across reviews, tweets, and social media.',
+      heroStatSamples: '200K+ Training Samples',
+      heroStatLang: 'English',
+      heroStatArch: 'RoBERTa Base',
+      tooltipText: 'Works best with 10–200 words. Supports English text, tweets, reviews, and comments.',
+      placeholder: "Type or paste your text here... e.g. 'This product completely exceeded my expectations!'",
+      selectSub: '<strong>v1 (RoBERTa)</strong> is the original English-only model — a solid, fast baseline for pure English text.',
+      architecture: 'Built on RoBERTa Base (125M parameters), fine-tuned with a custom 3-class classification head. Trained with AdamW optimizer, linear warmup scheduler, mixed-precision FP16, and label smoothing.',
+      dataCount: '200,000+',
+      dataList: [
+        'IMDB movie reviews',
+        'Stanford SST-2 sentences',
+        'Twitter Tweet Eval dataset',
+        'Yelp restaurant reviews'
+      ],
+      languages: 'Works on reviews, tweets, comments, and general English text.',
+      hfModelUrl: 'https://huggingface.co/airzipm/sentiment-analysis-roberta',
+      hfDatasetUrl: 'https://huggingface.co/datasets/airzipm/sentiment-dataset',
+      builtWith: 'Built with RoBERTa · Chart.js · Vanilla JS',
+      showHindiChips: false
+    }
+  };
+  const DEFAULT_MODEL_ID = 'v2';
+
+  function getModel() { return MODELS[currentModelId]; }
+  function getApiUrl() { return getModel().apiBase + '/analyze'; }
+
   // ── CONFIG ─────────────────────────────────────────────────
-  const API_BASE = "https://airzipm-sentimentai-api.hf.space";
-  const API_URL = `${API_BASE}/analyze`;
   const MAX_RETRIES = 10;
   const RETRY_INTERVAL = 20000;
   const WARMUP_TIMEOUT = 8000;
@@ -979,6 +1104,10 @@ input, textarea { font-family: inherit; }
   const FETCH_TIMEOUT = 60000; // 60s for cold starts
 
   // ── STATE ──────────────────────────────────────────────────
+  let currentModelId = (function() {
+    const saved = localStorage.getItem('selectedModel');
+    return (saved && MODELS[saved]) ? saved : DEFAULT_MODEL_ID;
+  })();
   let modelReady = false;
   let retryCount = 0;
   let retryTimer = null;
@@ -1015,6 +1144,22 @@ input, textarea { font-family: inherit; }
   const navStatusText = $('#navStatusText');
   const navStatusDotMobile = $('#navStatusDotMobile');
   const navStatusTextMobile = $('#navStatusTextMobile');
+  const modelSelectGroup = $('#modelSelectGroup');
+  const modelSelectSub = $('#modelSelectSub');
+  const heroPill = $('#heroPill');
+  const heroSubtitle = $('#heroSubtitle');
+  const heroStatSamples = $('#heroStatSamples');
+  const heroStatLang = $('#heroStatLang');
+  const heroStatArch = $('#heroStatArch');
+  const inputTooltipText = $('#inputTooltipText');
+  const infoArchitecture = $('#infoArchitecture');
+  const infoDataCount = $('#infoDataCount');
+  const infoDataList = $('#infoDataList');
+  const infoLanguages = $('#infoLanguages');
+  const footerModelLink = $('#footerModelLink');
+  const footerDatasetLink = $('#footerDatasetLink');
+  const footerBuiltWith = $('#footerBuiltWith');
+  const chipsRow5 = $('#chipsRow5');
   const textInput = $('#textInput');
   const charCounter = $('#charCounter');
   const clearBtn = $('#clearBtn');
@@ -1224,6 +1369,69 @@ input, textarea { font-family: inherit; }
     }
   }
 
+  // ── MODEL SELECTOR ─────────────────────────────────────────
+
+  function updateModelUI() {
+    const m = getModel();
+
+    // Selector buttons
+    $$('.model-select-btn').forEach(function(btn) {
+      const isActive = btn.dataset.model === m.id;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive);
+    });
+    modelSelectSub.innerHTML = m.selectSub;
+
+    // Hero
+    heroPill.textContent = m.heroPill;
+    heroSubtitle.textContent = m.heroSubtitle;
+    heroStatSamples.textContent = m.heroStatSamples;
+    heroStatLang.textContent = m.heroStatLang;
+    heroStatArch.textContent = m.heroStatArch;
+
+    // Input area
+    inputTooltipText.textContent = m.tooltipText;
+    textInput.placeholder = m.placeholder;
+
+    // Hindi/Hinglish example chips only shown for models that support them
+    chipsRow5.classList.toggle('visible', !!m.showHindiChips);
+
+    // Info section
+    infoArchitecture.textContent = m.architecture;
+    infoDataCount.textContent = m.dataCount;
+    infoDataList.innerHTML = m.dataList.map(function(item) { return '<li>' + item + '</li>'; }).join('');
+    infoLanguages.textContent = m.languages;
+
+    // Footer
+    footerModelLink.href = m.hfModelUrl;
+    footerDatasetLink.href = m.hfDatasetUrl;
+    footerBuiltWith.textContent = m.builtWith;
+  }
+
+  function switchModel(modelId) {
+    if (!MODELS[modelId] || modelId === currentModelId) return;
+    currentModelId = modelId;
+    localStorage.setItem('selectedModel', modelId);
+
+    // Reset connection state for the newly selected model's endpoint
+    clearTimeout(retryTimer);
+    clearInterval(countdownTimer);
+    retryCount = 0;
+    modelReady = false;
+    updateAnalyzeButtons();
+    clearResults();
+
+    updateModelUI();
+    setModelStatus('checking');
+    pingModel();
+  }
+
+  modelSelectGroup.addEventListener('click', function(e) {
+    const btn = e.target.closest('.model-select-btn');
+    if (!btn) return;
+    switchModel(btn.dataset.model);
+  });
+
   // ── MODEL STATUS ───────────────────────────────────────────
 
   function setModelStatus(state, extra) {
@@ -1241,16 +1449,18 @@ input, textarea { font-family: inherit; }
     navStatusDot.className = 'status-dot ' + dotClass;
     navStatusDotMobile.className = 'status-dot ' + dotClass;
 
+    const modelName = getModel().shortName;
+
     if (state === 'checking') {
       statusSpinner.style.display = 'block';
-      statusText.innerHTML = 'Checking model status...';
+      statusText.innerHTML = 'Checking ' + modelName + ' status...';
       navStatusText.textContent = 'Checking...';
       navStatusTextMobile.textContent = 'Checking...';
     }
     else if (state === 'warming') {
       statusIcon.style.display = 'inline';
       statusIcon.textContent = '🔥';
-      statusText.innerHTML = 'Model is warming up — this is normal for Hugging Face free tier spaces';
+      statusText.innerHTML = modelName + ' is warming up — this is normal for Hugging Face free tier spaces';
       statusText.innerHTML += '<div class="sub">Hugging Face free spaces go to sleep after inactivity. Your request will be processed automatically once the model wakes up. Estimated wait: 20–50 seconds.</div>';
       navStatusText.textContent = 'Warming up...';
       navStatusTextMobile.textContent = 'Warming up...';
@@ -1265,7 +1475,6 @@ input, textarea { font-family: inherit; }
       // Countdown
       let countdown = 20;
       clearInterval(countdownTimer);
-      const badge = null; // will query below
       countdownTimer = setInterval(function() {
         countdown--;
         const cdBadge = document.getElementById('countdownBadge');
@@ -1283,7 +1492,7 @@ input, textarea { font-family: inherit; }
     else if (state === 'online') {
       statusIcon.style.display = 'inline';
       statusIcon.textContent = '✅';
-      statusText.innerHTML = 'Model is online and ready';
+      statusText.innerHTML = modelName + ' is online and ready';
       navStatusText.textContent = 'Model Online';
       navStatusTextMobile.textContent = 'Model Online';
 
@@ -1295,7 +1504,7 @@ input, textarea { font-family: inherit; }
       setTimeout(function() {
         if (statusBar.classList.contains('online')) {
           statusBar.classList.add('minimal');
-          statusText.innerHTML = '✅ Model online' + (extra.responseTime ? ' — ' + extra.responseTime : '');
+          statusText.innerHTML = '✅ ' + modelName + ' online' + (extra.responseTime ? ' — ' + extra.responseTime : '');
           statusIcon.style.display = 'none';
           statusExtra.innerHTML = '';
         }
@@ -1307,7 +1516,7 @@ input, textarea { font-family: inherit; }
     else if (state === 'error') {
       statusIcon.style.display = 'inline';
       statusIcon.textContent = '❌';
-      statusText.innerHTML = 'Model unreachable. Check your connection or try again later.';
+      statusText.innerHTML = modelName + ' unreachable. Check your connection or try again later.';
       navStatusText.textContent = 'Offline';
       navStatusTextMobile.textContent = 'Offline';
       const retryBtn = '<button class="status-btn" id="retryConnBtn">Retry Connection</button>';
@@ -1329,22 +1538,22 @@ input, textarea { font-family: inherit; }
 
   // ── API FUNCTIONS ──────────────────────────────────────────
 
-  /** Ping model on page load */
+  /** Ping model on page load / model switch */
   async function pingModel() {
+    const requestedModelId = currentModelId; // guard against stale responses after a switch
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
-      const res = await fetch(API_URL, {
+      const res = await fetch(getApiUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ inputs: 'test' }),
         signal: controller.signal
       });
       clearTimeout(timeout);
+      if (requestedModelId !== currentModelId) return; // model was switched again while this was in flight
 
       if (res.ok) {
-        const data = await res.json();
-        // Valid response means model is ready
         lastResponseTime = null; // don't track ping time
         clearInterval(countdownTimer);
         clearTimeout(retryTimer);
@@ -1353,7 +1562,6 @@ input, textarea { font-family: inherit; }
       }
 
       if (res.status === 503) {
-        const data = await res.json().catch(() => ({}));
         setModelStatus('warming');
         scheduleRetry();
         return;
@@ -1370,6 +1578,7 @@ input, textarea { font-family: inherit; }
       setModelStatus('warming');
       scheduleRetry();
     } catch (err) {
+      if (requestedModelId !== currentModelId) return;
       if (err.name === 'AbortError') {
         setModelStatus('warming');
         scheduleRetry();
@@ -1399,7 +1608,7 @@ input, textarea { font-family: inherit; }
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
     const startTime = performance.now();
 
-    const res = await fetch(API_URL, {
+    const res = await fetch(getApiUrl(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ inputs: text }),
@@ -1438,7 +1647,7 @@ input, textarea { font-family: inherit; }
     // Typewriter messages
     const messages = [
       '🧠 Tokenizing your text...',
-      '🔍 Running through RoBERTa layers...',
+      '🔍 Running through model layers...',
       '📊 Computing attention weights...',
       '🎯 Classifying sentiment...',
       '✨ Almost there...'
@@ -1475,7 +1684,7 @@ input, textarea { font-family: inherit; }
 
     if (errorType === 'warming') {
       icon = '🔥';
-      title = 'Model is warming up';
+      title = getModel().shortName + ' is warming up';
       desc = 'The model is still loading on Hugging Face. This can take 20–50 seconds. Please try again in a moment.';
       // Trigger status bar update
       setModelStatus('warming');
@@ -1539,7 +1748,7 @@ input, textarea { font-family: inherit; }
     html += '<div class="confidence-block">';
     html += '<div class="confidence-value ' + cls + '" id="confValue">0%</div>';
     html += '<div class="confidence-label">Confidence</div>';
-    html += '<div class="confidence-sublabel">Model certainty in prediction</div>';
+    html += '<div class="confidence-sublabel">Model certainty in prediction · ' + getModel().shortName + '</div>';
     html += '</div>';
     html += '</div>';
 
@@ -1604,7 +1813,7 @@ input, textarea { font-family: inherit; }
 
     // Wire action buttons
     document.getElementById('copyResultBtn').addEventListener('click', function() {
-      const copyText = 'Sentiment: ' + label + ' (' + pct + '%) | Text: \'' + truncate(result.rawText, 100) + '\'';
+      const copyText = 'Sentiment: ' + label + ' (' + pct + '%) | Model: ' + getModel().shortName + ' | Text: \'' + truncate(result.rawText, 100) + '\'';
       copyToClipboard(copyText).then(function() {
         const btn = document.getElementById('copyResultBtn');
         btn.classList.add('copied');
@@ -1617,7 +1826,7 @@ input, textarea { font-family: inherit; }
     });
 
     document.getElementById('shareBtn').addEventListener('click', function() {
-      const url = window.location.origin + window.location.pathname + '?text=' + encodeURIComponent(truncate(result.rawText, 200));
+      const url = window.location.origin + window.location.pathname + '?text=' + encodeURIComponent(truncate(result.rawText, 200)) + '&model=' + currentModelId;
       copyToClipboard(url).then(function() {
         const btn = document.getElementById('shareBtn');
         btn.classList.add('copied');
@@ -1897,6 +2106,7 @@ input, textarea { font-family: inherit; }
         '<span class="history-label ' + cls + '">' + entry.label + '</span>' +
         '<span class="history-text">' + truncate(entry.text, 80) + '</span>' +
         '<div class="history-meta">' +
+          '<span class="history-model-tag">' + (entry.modelId || currentModelId) + '</span>' +
           '<span class="history-time">' + entry.timestamp + '</span>' +
           '<span class="history-score">' + (entry.score * 100).toFixed(1) + '%</span>' +
           '<button class="history-reanalyze" aria-label="Re-analyze" data-text="' + entry.text.replace(/"/g, '&quot;') + '"><i class="fa-solid fa-rotate-right"></i></button>' +
@@ -1981,6 +2191,8 @@ input, textarea { font-family: inherit; }
     analyzeBtn.classList.add('loading');
     showLoading();
 
+    const modelIdAtRequest = currentModelId;
+
     try {
       const result = await analyzeText(text);
 
@@ -1989,7 +2201,7 @@ input, textarea { font-family: inherit; }
       } else {
         lastResponseTime = result.responseTime;
         showResults(result);
-        updateHistory({ text: text, label: result.topLabel, score: result.topScore, scores: result.scores, timestamp: getTimestamp(), responseTime: result.responseTime });
+        updateHistory({ text: text, label: result.topLabel, score: result.topScore, scores: result.scores, timestamp: getTimestamp(), responseTime: result.responseTime, modelId: modelIdAtRequest });
         updateSessionStats({ label: result.topLabel, score: result.topScore, scores: result.scores, responseTime: result.responseTime });
 
         // Update status bar if it was warming
@@ -2071,7 +2283,7 @@ input, textarea { font-family: inherit; }
 
     // Summary
     batchSummary.innerHTML =
-      '<span class="batch-summary-text">📊 Batch Summary: ' +
+      '<span class="batch-summary-text">📊 Batch Summary (' + getModel().shortName + '): ' +
       '<span style="color:var(--positive)">' + counts.Positive + ' Positive</span> · ' +
       '<span style="color:var(--neutral-c)">' + counts.Neutral + ' Neutral</span> · ' +
       '<span style="color:var(--negative)">' + counts.Negative + ' Negative</span></span>' +
@@ -2221,11 +2433,16 @@ input, textarea { font-family: inherit; }
   // ── INIT ───────────────────────────────────────────────────
 
   applyTheme(currentTheme);
+  updateModelUI();
   updateCharCounter();
   pingModel();
 
-  // Check URL for ?text= parameter
+  // Check URL for ?text= and ?model= parameters
   const urlParams = new URLSearchParams(window.location.search);
+  const urlModel = urlParams.get('model');
+  if (urlModel && MODELS[urlModel] && urlModel !== currentModelId) {
+    switchModel(urlModel);
+  }
   const urlText = urlParams.get('text');
   if (urlText) {
     textInput.value = urlText;
